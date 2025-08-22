@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>SQL Practice Platform - API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing API connection...</p>';
+            
+            try {
+                // Test backend health
+                const healthResponse = await fetch('http://localhost:5001/api/health');
+                const healthData = await healthResponse.json();
+                resultsDiv.innerHTML += `<p>✅ Backend Health: ${healthData.status}</p>`;
+                
+                // Test problems API
+                const problemsResponse = await fetch('http://localhost:5001/api/sql/problems?');
+                const problemsData = await problemsResponse.json();
+                resultsDiv.innerHTML += `<p>✅ Problems API: ${problemsData.total} problems found</p>`;
+                resultsDiv.innerHTML += `<p>First problem: "${problemsData.problems[0].title}"</p>`;
+                
+                // Test companies API  
+                const companiesResponse = await fetch('http://localhost:5001/api/sql/companies');
+                const companiesData = await companiesResponse.json();
+                resultsDiv.innerHTML += `<p>✅ Companies API: ${companiesData.length} companies found</p>`;
+                
+                resultsDiv.innerHTML += '<h2>✅ All APIs working correctly!</h2>';
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        testAPI();
+    </script>
+</body>
+</html>

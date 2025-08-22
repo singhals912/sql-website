@@ -1,0 +1,160 @@
+[dotenv@17.2.1] injecting env (20) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+⚠️  ENVIRONMENT SECURITY WARNINGS:
+  - JWT_SECRET appears to have low entropy. Consider generating with crypto.randomBytes().
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Server running on port 5001
+🔍 PROGRESS DASHBOARD DEBUG: sessionId = session_1755573308000_3z3p7yp9n
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 PROGRESS DASHBOARD DEBUG: streakInfo = {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z,
+  longest_streak: '3'
+}
+::1 - - [21/Aug/2025:22:52:36 +0000] "GET /api/recommendations/progress-dashboard HTTP/1.1" 200 23127 "-" "curl/8.7.1"
+🔍 PROGRESS DASHBOARD DEBUG: sessionId = session_1755573308000_3z3p7yp9n
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/daily-challenge HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/auth/validate HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/achievements HTTP/1.1" 200 1293 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 PROGRESS DASHBOARD DEBUG: streakInfo = {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z,
+  longest_streak: '3'
+}
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/progress-dashboard HTTP/1.1" 200 23127 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/daily-challenge HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 PROGRESS DASHBOARD DEBUG: sessionId = session_1755573308000_3z3p7yp9n
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/auth/validate HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/daily-challenge HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 PROGRESS DASHBOARD DEBUG: streakInfo = {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z,
+  longest_streak: '3'
+}
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/progress-dashboard HTTP/1.1" 200 23127 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/achievements HTTP/1.1" 200 1293 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 PROGRESS DASHBOARD DEBUG: sessionId = session_1755573308000_3z3p7yp9n
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/daily-challenge HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/problems HTTP/1.1" 200 8344 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 PROGRESS DASHBOARD DEBUG: streakInfo = {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z,
+  longest_streak: '3'
+}
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/progress-dashboard HTTP/1.1" 200 23127 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+🔍 PROGRESS DASHBOARD DEBUG: sessionId = session_1755573308000_3z3p7yp9n
+🔍 STREAK DEBUG - Recent solve dates: [
+  { solve_date: null, problems_that_day: '13' },
+  { solve_date: 2025-08-21T04:00:00.000Z, problems_that_day: '2' },
+  { solve_date: 2025-08-20T04:00:00.000Z, problems_that_day: '1' },
+  { solve_date: 2025-08-19T04:00:00.000Z, problems_that_day: '14' }
+]
+🔍 STREAK DEBUG - Query result: {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z
+}
+🔍 PROGRESS DASHBOARD DEBUG: streakInfo = {
+  current_streak: '1',
+  streak_start: 2025-08-21T04:00:00.000Z,
+  streak_end: 2025-08-21T04:00:00.000Z,
+  longest_streak: '3'
+}
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/progress-dashboard HTTP/1.1" 200 23127 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/problems HTTP/1.1" 200 8142 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/problems HTTP/1.1" 200 8081 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:41:18 +0000] "GET /api/recommendations/problems HTTP/1.1" 200 8093 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+Connected to PostgreSQL database
+Connected to PostgreSQL database
+::1 - - [22/Aug/2025:01:55:28 +0000] "GET /api/recommendations/daily-challenge HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+::1 - - [22/Aug/2025:01:55:28 +0000] "GET /api/recommendations/problems HTTP/1.1" 200 8087 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"

@@ -1,0 +1,60 @@
+[dotenv@17.2.1] injecting env (12) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.1] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Ignoring invalid configuration option passed to Connection: acquireTimeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: timeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: acquireTimeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: timeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+=� Server running on port 5001
+=� Health check: http://localhost:5001/api/health
+❌ Failed to connect to MySQL executor: 
+✅ Connected to PostgreSQL executor
+✅ PostgreSQL problem environment setup complete
+✅ Default practice environment set up
+::1 - - [13/Aug/2025:12:00:10 +0000] "GET /api/health HTTP/1.1" 200 87 "-" "curl/8.7.1"
+Error getting learning path with steps: error: column p.category does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async LearningPathService.getLearningPathWithSteps (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/learningPathService.js:41:27)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/learningPathRoutes.js:36:26 {
+  length: 169,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "p.category_id".',
+  position: '173',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3657',
+  routine: 'errorMissingColumn'
+}
+Error getting learning path: error: column p.category does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async LearningPathService.getLearningPathWithSteps (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/learningPathService.js:41:27)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/learningPathRoutes.js:36:26 {
+  length: 169,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "p.category_id".',
+  position: '173',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3657',
+  routine: 'errorMissingColumn'
+}
+::1 - - [13/Aug/2025:12:00:15 +0000] "GET /api/learning-paths/0b4e4cf5-69a2-4ae9-b278-b930bbdc6808 HTTP/1.1" 500 55 "-" "curl/8.7.1"

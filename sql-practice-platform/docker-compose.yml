@@ -1,0 +1,60 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: sql_practice_postgres
+    environment:
+      POSTGRES_DB: sql_practice
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: sql_practice_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # SQL Execution Containers
+  mysql-executor:
+    image: mysql:8.0
+    container_name: sql_practice_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: sandbox
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --sql-mode=""
+
+  postgres-executor:
+    image: postgres:15
+    container_name: sql_practice_postgres_executor
+    environment:
+      POSTGRES_DB: sandbox
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_executor_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  mysql_data:
+  postgres_executor_data:

@@ -1,0 +1,45 @@
+ numeric_id |               title                |                                               solution_sql                                               |                                                                                                                                                                                                                    expected_output                                                                                                                                                                                                                     
+------------+------------------------------------+----------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+         18 | Restaurant Chain Sales Analysis    |                                                                                                         +| [["New York", "Main Course", "2", "4", "87.96", "43.98"], ["Los Angeles", "Main Course", "2", "4", "81.96", "40.98"], ["Los Angeles", "Appetizer", "1", "2", "29.98", "29.98"], ["Miami", "Appetizer", "1", "2", "25.98", "25.98"], ["Chicago", "Main Course", "1", "1", "24.99", "24.99"], ["Chicago", "Dessert", "1", "2", "19.98", "19.98"], ["New York", "Appetizer", "1", "1", "12.99", "12.99"], ["Miami", "Dessert", "1", "1", "8.99", "8.99"]]
+            |                                    | SELECT                                                                                                  +| 
+            |                                    |     r.city,                                                                                             +| 
+            |                                    |     m.category,                                                                                         +| 
+            |                                    |     COUNT(s.sale_id) as total_orders,                                                                   +| 
+            |                                    |     SUM(s.quantity) as total_items_sold,                                                                +| 
+            |                                    |     ROUND(SUM(s.total_amount), 2) as total_revenue,                                                     +| 
+            |                                    |     ROUND(AVG(s.total_amount), 2) as avg_order_value                                                    +| 
+            |                                    | FROM restaurants r                                                                                      +| 
+            |                                    | JOIN sales s ON r.restaurant_id = s.restaurant_id                                                       +| 
+            |                                    | JOIN menu_items m ON s.item_id = m.item_id                                                              +| 
+            |                                    | GROUP BY r.city, m.category                                                                             +| 
+            |                                    | ORDER BY total_revenue DESC;                                                                             | 
+         24 | Online Learning Platform Analytics |                                                                                                         +| [["Programming", "Beginner", "3", "3", "100.00", "27.83"], ["Data Science", "Intermediate", "1", "1", "100.00", "50.00"], ["Web Dev", "Beginner", "2", "0", "0.00", "13.50"], ["Database", "Advanced", "2", "0", "0.00", "29.50"]]
+            |                                    | SELECT                                                                                                  +| 
+            |                                    |     c.category,                                                                                         +| 
+            |                                    |     c.difficulty_level,                                                                                 +| 
+            |                                    |     COUNT(e.enrollment_id) as total_enrollments,                                                        +| 
+            |                                    |     COUNT(CASE WHEN e.completion_status = 'Completed' THEN 1 END) as completions,                       +| 
+            |                                    |     ROUND(                                                                                              +| 
+            |                                    |         COUNT(CASE WHEN e.completion_status = 'Completed' THEN 1 END) * 100.0 / COUNT(e.enrollment_id), +| 
+            |                                    |         2                                                                                               +| 
+            |                                    |     ) as completion_rate,                                                                               +| 
+            |                                    |     ROUND(AVG(e.hours_studied), 2) as avg_study_hours                                                   +| 
+            |                                    | FROM courses c                                                                                          +| 
+            |                                    | JOIN enrollments e ON c.course_id = e.course_id                                                         +| 
+            |                                    | GROUP BY c.category, c.difficulty_level                                                                 +| 
+            |                                    | ORDER BY completion_rate DESC;                                                                           | 
+          1 | A/B Test Results Analysis          |                                                                                                         +| [{"group_name": "treatment", "conversions": "8", "total_users": "12", "conversion_rate": "66.67"}, {"group_name": "control", "conversions": "7", "total_users": "13", "conversion_rate": "53.85"}]
+            |                                    |       SELECT                                                                                            +| 
+            |                                    |         test_group as group_name,                                                                       +| 
+            |                                    |         COUNT(*) as total_users,                                                                        +| 
+            |                                    |         SUM(CASE WHEN converted THEN 1 ELSE 0 END) as conversions,                                      +| 
+            |                                    |         ROUND(                                                                                          +| 
+            |                                    |           SUM(CASE WHEN converted THEN 1 ELSE 0 END) * 100.0 / COUNT(*),                                +| 
+            |                                    |           2                                                                                             +| 
+            |                                    |         ) as conversion_rate                                                                            +| 
+            |                                    |       FROM ab_test_results                                                                              +| 
+            |                                    |       GROUP BY test_group                                                                               +| 
+            |                                    |       ORDER BY conversion_rate DESC;                                                                    +| 
+            |                                    |                                                                                                          | 
+(3 rows)
+

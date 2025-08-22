@@ -1,0 +1,113 @@
+
+> sql-practice-backend@1.0.0 start
+> node src/server.js
+
+[dotenv@17.2.1] injecting env (12) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Ignoring invalid configuration option passed to Connection: acquireTimeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+Ignoring invalid configuration option passed to Connection: timeout. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+=🚀 Server running on port 5001
+=🔍 Health check: http://localhost:5001/api/health
+✅ Performance metrics schema initialized
+=📊 Performance monitoring initialized
+✅ Query history schema initialized
+=📚 Query history initialized
+✅ Schema cache refreshed: 2 tables, 19 columns
+✅ Connected to PostgreSQL executor
+✅ PostgreSQL problem environment setup complete
+✅ Default practice environment set up
+::1 - - [13/Aug/2025:21:07:35 +0000] "GET /api/health HTTP/1.1" 200 87 "-" "curl/8.7.1"
+Error getting enhanced explanation: error: relation "problems_schema" does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ExplanationService.getEnhancedExplanation (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/explanationService.js:109:29)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/explanationRoutes.js:10:25 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '262',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1384',
+  routine: 'parserOpenTable'
+}
+Error getting enhanced explanation: error: relation "problems_schema" does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ExplanationService.getEnhancedExplanation (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/explanationService.js:109:29)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/explanationRoutes.js:10:25 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '262',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1384',
+  routine: 'parserOpenTable'
+}
+::1 - - [13/Aug/2025:21:07:39 +0000] "GET /api/problems/1/explanation HTTP/1.1" 500 62 "-" "curl/8.7.1"
+Error getting enhanced explanation: error: relation "problems_schema" does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ExplanationService.getEnhancedExplanation (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/explanationService.js:109:29)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/explanationRoutes.js:10:25 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '262',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1384',
+  routine: 'parserOpenTable'
+}
+Error getting enhanced explanation: error: relation "problems_schema" does not exist
+    at /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ExplanationService.getEnhancedExplanation (/Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/services/explanationService.js:109:29)
+    at async /Users/ss/Downloads/Code/Vibe_coding/SQL_practice_website/backend/src/routes/explanationRoutes.js:10:25 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '262',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1384',
+  routine: 'parserOpenTable'
+}
+::1 - - [13/Aug/2025:21:08:08 +0000] "GET /api/problems/1/explanation HTTP/1.1" 500 62 "-" "curl/8.7.1"
