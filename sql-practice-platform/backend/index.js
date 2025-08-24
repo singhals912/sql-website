@@ -63,6 +63,7 @@ app.use('/api/restore-original-schemas', require('./routes/restore-original-sche
 app.use('/api/fix-apple-schema', require('./routes/fix-apple-schema'));
 app.use('/api/fix-all-schemas', require('./routes/fix-all-schemas'));
 app.use('/api/emergency-fix', require('./routes/emergency-fix'));
+app.use('/api/complete-database-restore', require('./routes/complete-database-restore'));
 
 // Health check
 app.get('/api/health', (req, res) => {
