@@ -130,11 +130,9 @@ router.post('/all-problems', async (req, res) => {
                 
                 await pool.query(`
                     INSERT INTO problem_schemas (
-                        problem_id, sql_dialect, schema_sql, expected_output
+                        problem_id, sql_dialect, setup_sql, expected_output
                     ) VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (problem_id, sql_dialect) DO UPDATE SET
-                        schema_sql = EXCLUDED.schema_sql,
-                        expected_output = EXCLUDED.expected_output
+                    ON CONFLICT DO NOTHING
                 `, [
                     problem.id,
                     'postgresql', 
