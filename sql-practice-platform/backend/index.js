@@ -54,6 +54,7 @@ app.use('/api/migrate-direct', require('./routes/migrate-direct'));
 app.use('/api/debug-db', require('./routes/debug-db'));
 app.use('/api/quick-fix', require('./routes/quick-fix'));
 app.use('/api/manual-schema-fix', require('./routes/manual-schema-fix'));
+app.use('/api/restore-db', require('./routes/restore-db'));
 
 // Health check
 app.get('/api/health', (req, res) => {
