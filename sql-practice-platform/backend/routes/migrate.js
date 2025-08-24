@@ -25,7 +25,7 @@ router.post('/init', async (req, res) => {
         
         // Read and execute schema if needed
         try {
-            const schemaPath = path.join(__dirname, '../../database/init.sql');
+            const schemaPath = path.join(__dirname, '../../../database/init.sql');
             if (fs.existsSync(schemaPath)) {
                 const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
                 await pool.query(schemaSQL);
@@ -37,7 +37,7 @@ router.post('/init', async (req, res) => {
         
         // Apply migrations
         try {
-            const migrationPath = path.join(__dirname, '../../database/migrations/001_add_missing_critical_tables.sql');
+            const migrationPath = path.join(__dirname, '../../../database/migrations/001_add_missing_critical_tables.sql');
             if (fs.existsSync(migrationPath)) {
                 const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
                 await pool.query(migrationSQL);
@@ -49,7 +49,7 @@ router.post('/init', async (req, res) => {
         
         // Add sample data if needed
         try {
-            const sampleDataPath = path.join(__dirname, '../../database/sample_problems.sql');
+            const sampleDataPath = path.join(__dirname, '../../../database/sample_problems.sql');
             if (fs.existsSync(sampleDataPath)) {
                 const sampleSQL = fs.readFileSync(sampleDataPath, 'utf8');
                 await pool.query(sampleSQL);
