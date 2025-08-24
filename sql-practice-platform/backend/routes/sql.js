@@ -127,7 +127,7 @@ router.get('/problems/:id', async (req, res) => {
             const rawSchema = schemaResult.rows[0];
             transformedSchema = {
                 ...rawSchema,
-                setup_sql: rawSchema.schema_sql, // Frontend expects setup_sql
+                setup_sql: rawSchema.setup_sql || rawSchema.schema_sql, // Use setup_sql from database
                 expected_output: rawSchema.expected_output // Now directly available
             };
         }
