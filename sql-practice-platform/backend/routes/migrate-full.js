@@ -7,7 +7,7 @@ const FULL_DATA = {
   "categories": [
     {"id": "94d5b4a2-8b1a-4e5d-8b3f-1a2b3c4d5e6f", "name": "A/B Testing", "description": "Statistical analysis and experimentation", "slug": "ab-testing"},
     {"id": "c7e4c5a1-5b75-4117-a113-118749434557", "name": "Advanced Topics", "description": "Complex SQL patterns", "slug": "advanced-topics"},
-    {"id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6", "name": "Analytics", "description": "Business intelligence and reporting", "slug": "analytics"},
+    {"id": "b1c2d3e4-f506-7081-9a0b-c1d2e3f4a5b6", "name": "Analytics", "description": "Business intelligence and reporting", "slug": "analytics"},
     {"id": "f1e2d3c4-b5a6-7908-1234-567890abcdef", "name": "Data Warehousing", "description": "ETL and dimensional modeling", "slug": "data-warehousing"},
     {"id": "12345678-90ab-cdef-1234-567890123456", "name": "E-commerce", "description": "Online retail and marketplace queries", "slug": "ecommerce"},
     {"id": "e5d4c3b2-a190-8f7e-6d5c-4b3a29180f7e", "name": "Financial", "description": "Banking and finance industry", "slug": "financial"},
