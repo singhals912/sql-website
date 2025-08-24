@@ -5,7 +5,6 @@
     "dockerfilePath": "sql-practice-platform/Dockerfile"
   },
   "deploy": {
-    "startCommand": "cd sql-practice-platform/backend && npm start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
