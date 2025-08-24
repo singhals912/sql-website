@@ -128,19 +128,26 @@ router.post('/all-problems', async (req, res) => {
                 const schema = sampleSchemas[schemaIndex % sampleSchemas.length];
                 const setupSQL = `${schema.tableSQL}\n\n${schema.insertSQL}`;
                 
-                await pool.query(`
-                    INSERT INTO problem_schemas (
-                        problem_id, sql_dialect, setup_sql, expected_output
-                    ) VALUES ($1, $2, $3, $4)
-                    ON CONFLICT DO NOTHING
-                `, [
-                    problem.id,
-                    'postgresql', 
-                    setupSQL,
-                    JSON.stringify(schema.expectedOutput)
-                ]);
+                // Check if schema already exists for this problem
+                const existingSchema = await pool.query(`
+                    SELECT id FROM problem_schemas 
+                    WHERE problem_id = $1 AND sql_dialect = $2
+                `, [problem.id, 'postgresql']);
                 
-                results.schemas++;
+                if (existingSchema.rows.length === 0) {
+                    await pool.query(`
+                        INSERT INTO problem_schemas (
+                            problem_id, sql_dialect, setup_sql, expected_output
+                        ) VALUES ($1, $2, $3, $4)
+                    `, [
+                        problem.id,
+                        'postgresql', 
+                        setupSQL,
+                        JSON.stringify(schema.expectedOutput)
+                    ]);
+                    results.schemas++;
+                }
+                
                 schemaIndex++;
                 
                 if (results.schemas % 10 === 0) {
