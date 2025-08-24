@@ -121,9 +121,32 @@ router.get('/problems/:id', async (req, res) => {
             console.log('Schema table not found or empty, using empty schemas');
         }
         
+        // Transform schema data to match frontend expectations
+        let transformedSchema = null;
+        if (schemaResult.rows.length > 0) {
+            const rawSchema = schemaResult.rows[0];
+            transformedSchema = {
+                ...rawSchema,
+                setup_sql: rawSchema.schema_sql, // Frontend expects setup_sql
+                expected_output: null
+            };
+            
+            // Parse sample_data if it contains expected_output
+            if (rawSchema.sample_data) {
+                try {
+                    const parsedData = JSON.parse(rawSchema.sample_data);
+                    if (parsedData.expected_output) {
+                        transformedSchema.expected_output = parsedData.expected_output;
+                    }
+                } catch (e) {
+                    console.log('Could not parse sample_data as JSON');
+                }
+            }
+        }
+        
         res.json({
             problem: problem,
-            schema: schemaResult.rows.length > 0 ? schemaResult.rows[0] : null,
+            schema: transformedSchema,
             schemas: schemaResult.rows
         });
     } catch (error) {
