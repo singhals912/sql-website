@@ -186,11 +186,16 @@ router.post('/immediate-full-restore', async (req, res) => {
         const exportData = JSON.parse(fs.readFileSync(exportFile, 'utf8'));
         console.log(`📊 Export contains: ${exportData.categories?.length || 0} categories, ${exportData.problems?.length || 0} problems`);
         
-        // Step 1: Recreate all core tables
-        console.log('📋 Creating core database tables...');
+        // Step 1: Drop and recreate all core tables
+        console.log('📋 Dropping and recreating core database tables...');
+        
+        // Drop tables in correct order (referencing tables first)
+        await pool.query('DROP TABLE IF EXISTS problem_schemas CASCADE');
+        await pool.query('DROP TABLE IF EXISTS problems CASCADE');  
+        await pool.query('DROP TABLE IF EXISTS categories CASCADE');
         
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS categories (
+            CREATE TABLE categories (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
                 slug VARCHAR(255) UNIQUE NOT NULL,
@@ -201,7 +206,7 @@ router.post('/immediate-full-restore', async (req, res) => {
         `);
         
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS problems (
+            CREATE TABLE problems (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 title VARCHAR(255) NOT NULL,
                 slug VARCHAR(255) UNIQUE NOT NULL,
@@ -223,7 +228,7 @@ router.post('/immediate-full-restore', async (req, res) => {
         `);
         
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS problem_schemas (
+            CREATE TABLE problem_schemas (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 problem_id UUID NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
                 sql_dialect VARCHAR(50) DEFAULT 'postgresql',
@@ -250,7 +255,6 @@ router.post('/immediate-full-restore', async (req, res) => {
             await pool.query(`
                 INSERT INTO categories (id, name, slug, description, created_at)
                 VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (id) DO NOTHING
             `, [
                 category.id,
                 category.name,
@@ -272,7 +276,6 @@ router.post('/immediate-full-restore', async (req, res) => {
                     is_premium, is_active, numeric_id, tags, hints, created_at,
                     total_submissions, total_accepted, acceptance_rate
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-                ON CONFLICT (id) DO NOTHING
             `, [
                 problem.id,
                 problem.title,
