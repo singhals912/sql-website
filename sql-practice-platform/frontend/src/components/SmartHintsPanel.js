@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const SmartHintsPanel = ({ problemId, userAttempts = 0, userQuery = '' }) => {
   const [hints, setHints] = useState([]);
@@ -28,7 +29,7 @@ const SmartHintsPanel = ({ problemId, userAttempts = 0, userQuery = '' }) => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       const response = await axios.get(
-        `http://localhost:5001/api/recommendations/hints/${problemId}?attempts=${userAttempts}`,
+        recommendationsUrl(`hints/${problemId}?attempts=${userAttempts}`),
         { headers: { 'x-session-id': sessionId } }
       );
       
@@ -47,7 +48,7 @@ const SmartHintsPanel = ({ problemId, userAttempts = 0, userQuery = '' }) => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       const response = await axios.post(
-        'http://localhost:5001/api/recommendations/personalized-hint',
+        recommendationsUrl('personalized-hint'),
         { problemId, userQuery },
         { headers: { 'x-session-id': sessionId } }
       );
@@ -67,7 +68,7 @@ const SmartHintsPanel = ({ problemId, userAttempts = 0, userQuery = '' }) => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       await axios.post(
-        'http://localhost:5001/api/recommendations/hint-usage',
+        recommendationsUrl('hint-usage'),
         { hintId, problemId },
         { headers: { 'x-session-id': sessionId } }
       );

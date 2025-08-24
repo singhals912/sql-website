@@ -7,6 +7,7 @@ import BookmarkButton from '../components/BookmarkButton';
 import EnhancedErrorDisplay from '../components/EnhancedErrorDisplay';
 import SQLHighlightEditor from '../components/SQLHighlightEditor';
 import SQLHighlightDisplay from '../components/SQLHighlightDisplay';
+import { sqlUrl, apiUrl, learningPathsUrl } from '../config/environment';
 
 
 function PracticePage() {
@@ -67,7 +68,7 @@ function PracticePage() {
   // Define callback functions first (before useEffect that uses them)
   const setupProblemEnvironment = async (id) => {
     try {
-      await fetch(`http://localhost:5001/api/sql/problems/${id}/setup`, {
+      await fetch(sqlUrl(`problems/${id}/setup`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ function PracticePage() {
 
   const loadProblem = useCallback(async (id) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/sql/problems/${id}`);
+      const response = await fetch(sqlUrl(`problems/${id}`));
       const data = await response.json();
       
       if (response.ok) {
@@ -112,7 +113,7 @@ function PracticePage() {
       
       if (learningPathId) {
         // User came from a specific learning path, use that context
-        const positionResponse = await fetch(`http://localhost:5001/api/learning-paths/${learningPathId}/position/${problemId}`);
+        const positionResponse = await fetch(learningPathsUrl(`${learningPathId}/position/${problemId}`));
         const positionData = await positionResponse.json();
         
         if (positionResponse.ok) {
@@ -123,7 +124,7 @@ function PracticePage() {
       }
       
       // Fallback: check if problem belongs to any learning paths
-      const response = await fetch(`http://localhost:5001/api/problems/${problemId}/learning-paths`);
+      const response = await fetch(apiUrl(`problems/${problemId}/learning-paths`));
       const data = await response.json();
       
       if (response.ok && data.learningPaths && data.learningPaths.length > 0) {
@@ -132,7 +133,7 @@ function PracticePage() {
         setLearningPathContext(primaryPath);
         
         // Get position information for this problem in the learning path
-        const positionResponse = await fetch(`http://localhost:5001/api/learning-paths/${primaryPath.learning_path_id}/position/${problemId}`);
+        const positionResponse = await fetch(learningPathsUrl(`${primaryPath.learning_path_id}/position/${problemId}`));
         const positionData = await positionResponse.json();
         
         if (positionResponse.ok) {
@@ -197,7 +198,7 @@ function PracticePage() {
       
       if (learningPathId) {
         // Load problems specific to this learning path
-        const response = await fetch(`http://localhost:5001/api/learning-paths/${learningPathId}`);
+        const response = await fetch(learningPathsUrl(`${learningPathId}`));
         const data = await response.json();
         if (response.ok && data.problems) {
           // Sort by step order for learning paths
@@ -220,7 +221,7 @@ function PracticePage() {
         }
       } else {
         // Load all problems (default behavior)
-        const response = await fetch('http://localhost:5001/api/sql/problems');
+        const response = await fetch(sqlUrl('problems'));
         const data = await response.json();
         if (response.ok && data.problems) {
           // Sort problems by numeric_id for sequential ordering
@@ -256,7 +257,7 @@ function PracticePage() {
     // If in learning path context, use learning path navigation
     if (learningPathContext && pathPosition) {
       try {
-        const response = await fetch(`http://localhost:5001/api/learning-paths/${learningPathContext.learning_path_id}/next/${problemId}`);
+        const response = await fetch(learningPathsUrl(`${learningPathContext.learning_path_id}/next/${problemId}`));
         const data = await response.json();
         
         if (response.ok && data.nextProblem) {
@@ -418,7 +419,7 @@ function PracticePage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const response = await fetch('http://localhost:5001/api/execute/sql', {
+      const response = await fetch(apiUrl('execute/sql'), {
         method: 'POST',
         signal: controller.signal,
         headers: {

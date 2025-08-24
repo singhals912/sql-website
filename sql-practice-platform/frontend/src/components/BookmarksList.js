@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { bookmarksUrl } from '../config/environment';
 
 const BookmarksList = ({ bookmarkType = null, className = '' }) => {
   const [bookmarks, setBookmarks] = useState([]);
@@ -26,7 +27,7 @@ const BookmarksList = ({ bookmarkType = null, className = '' }) => {
     try {
       const sessionId = getSessionId();
       const typeParam = selectedType !== 'all' ? `?type=${selectedType}` : '';
-      const url = `http://localhost:5001/api/bookmarks${typeParam}`;
+      const url = bookmarksUrl(typeParam.replace('?type=', ''));
       
       console.log('Fetching bookmarks:', { url, sessionId, selectedType });
       
@@ -59,7 +60,7 @@ const BookmarksList = ({ bookmarkType = null, className = '' }) => {
   const removeBookmark = async (problemId) => {
     try {
       const sessionId = getSessionId();
-      const response = await fetch(`http://localhost:5001/api/bookmarks/${problemId}`, {
+      const response = await fetch(bookmarksUrl(problemId), {
         method: 'DELETE',
         headers: {
           'x-session-id': sessionId

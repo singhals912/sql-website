@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { bookmarksUrl } from '../config/environment';
 
 const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -47,7 +48,7 @@ const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
         const sessionId = getSessionId();
         console.log('Checking bookmark status for:', { problemId, sessionId });
         
-        const response = await fetch(`http://localhost:5001/api/bookmarks/check/${problemId}`, {
+        const response = await fetch(bookmarksUrl(`check/${problemId}`), {
           headers: {
             'X-Session-ID': sessionId
           }
@@ -109,7 +110,7 @@ const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
       const sessionId = getSessionId();
       
       // Add bookmark
-      const response = await fetch(`http://localhost:5001/api/bookmarks/${problemId}`, {
+      const response = await fetch(bookmarksUrl(problemId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +165,7 @@ const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
       const sessionId = getSessionId();
       console.log('Removing bookmark:', { problemId, sessionId });
       
-      const response = await fetch(`http://localhost:5001/api/bookmarks/${problemId}`, {
+      const response = await fetch(bookmarksUrl(problemId), {
         method: 'DELETE',
         headers: {
           'X-Session-ID': sessionId
