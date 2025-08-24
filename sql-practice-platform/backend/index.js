@@ -67,7 +67,7 @@ app.use('/api/complete-database-restore', require('./routes/complete-database-re
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
+    res.json({ status: 'ok', message: 'Server is running', timestamp: new Date().toISOString() });
 });
 
 // Serve frontend static files in production
