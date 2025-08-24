@@ -126,9 +126,15 @@ router.get('/problems/:id', async (req, res) => {
         if (schemaResult.rows.length > 0) {
             const rawSchema = schemaResult.rows[0];
             transformedSchema = {
-                ...rawSchema,
-                setup_sql: rawSchema.setup_sql || rawSchema.schema_sql, // Use setup_sql from database
-                expected_output: rawSchema.expected_output // Now directly available
+                id: rawSchema.id,
+                problem_id: rawSchema.problem_id,
+                sql_dialect: rawSchema.sql_dialect,
+                setup_sql: rawSchema.setup_sql, // This is the key field frontend needs
+                expected_output: rawSchema.expected_output,
+                solution_sql: rawSchema.solution_sql,
+                explanation: rawSchema.explanation,
+                created_at: rawSchema.created_at,
+                schema_sql: rawSchema.schema_sql
             };
         }
         
