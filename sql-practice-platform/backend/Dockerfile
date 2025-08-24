@@ -3,9 +3,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy and install backend dependencies
-COPY package*.json ./
-RUN npm install --production
+# Copy package files
+COPY package.json ./
+
+# Install dependencies
+RUN npm install --only=production
 
 # Copy backend source
 COPY . ./
