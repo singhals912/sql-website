@@ -43,21 +43,38 @@ app.use('/api/learning-paths', require('./routes/learning-paths'));
 app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/recommendations', require('./routes/recommendations'));
+app.use('/api/learning', require('./routes/learning'));
+app.use('/api/monitor', require('./routes/monitor'));
 
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+    const path = require('path');
+    app.use(express.static(path.join(__dirname, '../public')));
+    
+    // Serve React app for all non-API routes
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(__dirname, '../public/index.html'));
+        } else {
+            res.status(404).json({ error: 'API route not found' });
+        }
+    });
+} else {
+    // 404 handler for development
+    app.use('*', (req, res) => {
+        res.status(404).json({ error: 'Route not found' });
+    });
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({ error: 'Route not found' });
 });
 
 // Start server
