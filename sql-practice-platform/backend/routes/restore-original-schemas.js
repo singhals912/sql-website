@@ -68,7 +68,7 @@ router.post('/all', async (req, res) => {
                         originalSchema.problem_id,
                         'postgresql', // Always use PostgreSQL for our deployment
                         postgresqlSchema,
-                        originalSchema.expected_output,
+                        JSON.stringify(originalSchema.expected_output), // Convert to JSON string
                         originalSchema.solution_sql,
                         originalSchema.explanation
                     ]);
@@ -84,7 +84,7 @@ router.post('/all', async (req, res) => {
                         originalSchema.problem_id,
                         originalSchema.sql_dialect,
                         originalSchema.setup_sql,
-                        originalSchema.expected_output,
+                        JSON.stringify(originalSchema.expected_output), // Convert to JSON string
                         originalSchema.solution_sql,
                         originalSchema.explanation
                     ]);
