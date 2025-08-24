@@ -49,6 +49,7 @@ app.use('/api/migrate', require('./routes/migrate'));
 app.use('/api/migrate-simple', require('./routes/migrate-simple'));
 app.use('/api/migrate-data', require('./routes/migrate-data'));
 app.use('/api/migrate-full', require('./routes/migrate-full'));
+app.use('/api/migrate-real', require('./routes/migrate-real'));
 
 // Health check
 app.get('/api/health', (req, res) => {
