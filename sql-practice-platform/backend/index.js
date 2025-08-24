@@ -58,6 +58,7 @@ app.use('/api/restore-db', require('./routes/restore-db'));
 app.use('/api/fix-schema-table', require('./routes/fix-schema-table'));
 app.use('/api/add-abn-schema', require('./routes/add-abn-schema'));
 app.use('/api/complete-migration', require('./routes/complete-migration'));
+app.use('/api/fix-problem-specific-schemas', require('./routes/fix-problem-specific-schemas'));
 
 // Health check
 app.get('/api/health', (req, res) => {
