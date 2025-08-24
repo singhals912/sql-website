@@ -69,21 +69,20 @@ WHERE probability_default > 0.03
 ORDER BY raroc_percentage DESC
 LIMIT 3;`;
 
-        // Insert or update the schema using existing column names
+        // Insert or update the schema using new column structure
         await pool.query(`
             INSERT INTO problem_schemas (
-                problem_id, sql_dialect, schema_sql, sample_data
-            ) VALUES ($1, $2, $3, $4)
+                problem_id, sql_dialect, schema_sql, expected_output, 
+                solution_sql, explanation
+            ) VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT DO NOTHING
         `, [
             problemId,
             'postgresql',
             setupSql,
-            JSON.stringify({
-                expected_output: expectedOutput,
-                solution_sql: solutionSql,
-                explanation: 'Advanced credit risk analysis combining probability of default, loss given default, and risk-adjusted return on capital metrics.'
-            })
+            JSON.stringify(expectedOutput),
+            solutionSql,
+            'Advanced credit risk analysis combining probability of default, loss given default, and risk-adjusted return on capital metrics.'
         ]);
         
         console.log('✅ Schema data added for ABN AMRO problem');

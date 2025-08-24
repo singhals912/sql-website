@@ -105,7 +105,7 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemId) {
                     problemQuery = `
-                        SELECT ps.schema_sql as setup_sql, ps.sample_data 
+                        SELECT ps.schema_sql as setup_sql, ps.expected_output 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
@@ -113,7 +113,7 @@ router.post('/sql', async (req, res) => {
                     problemParams = [problemId, dialect];
                 } else {
                     problemQuery = `
-                        SELECT ps.schema_sql as setup_sql, ps.sample_data 
+                        SELECT ps.schema_sql as setup_sql, ps.expected_output 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.numeric_id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
@@ -125,16 +125,7 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemResult.rows.length > 0) {
                     setupSql = problemResult.rows[0].setup_sql;
-                    
-                    // Parse expected_output from sample_data JSON
-                    if (problemResult.rows[0].sample_data) {
-                        try {
-                            const parsedData = JSON.parse(problemResult.rows[0].sample_data);
-                            expectedOutput = parsedData.expected_output;
-                        } catch (e) {
-                            console.log('Could not parse sample_data for expected_output');
-                        }
-                    }
+                    expectedOutput = problemResult.rows[0].expected_output;
                 }
             } catch (setupError) {
                 console.error('Error getting problem setup:', setupError);
