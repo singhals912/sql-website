@@ -30,12 +30,25 @@ async function exportProblems() {
             SELECT * FROM categories ORDER BY name
         `);
         
+        // Export problem schemas (contains setup_sql, expected_output, solution_sql)
+        const schemasResult = await localPool.query(`
+            SELECT 
+                ps.*,
+                p.title as problem_title,
+                p.slug as problem_slug
+            FROM problem_schemas ps
+            LEFT JOIN problems p ON ps.problem_id = p.id
+            ORDER BY p.numeric_id, ps.sql_dialect
+        `);
+        
         const exportData = {
             categories: categoriesResult.rows,
             problems: problemsResult.rows,
+            problem_schemas: schemasResult.rows,
             exportedAt: new Date().toISOString(),
             totalProblems: problemsResult.rows.length,
-            totalCategories: categoriesResult.rows.length
+            totalCategories: categoriesResult.rows.length,
+            totalSchemas: schemasResult.rows.length
         };
         
         // Write to file
@@ -45,6 +58,7 @@ async function exportProblems() {
         console.log(`✅ Export completed!`);
         console.log(`   - ${exportData.totalCategories} categories exported`);
         console.log(`   - ${exportData.totalProblems} problems exported`);
+        console.log(`   - ${exportData.totalSchemas} problem schemas exported`);
         console.log(`   - Saved to: ${filename}`);
         
         // Show sample

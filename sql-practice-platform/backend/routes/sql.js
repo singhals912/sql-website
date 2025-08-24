@@ -108,14 +108,18 @@ router.get('/problems/:id', async (req, res) => {
         
         const problem = problemResult.rows[0];
         
-        // Get problem schemas
-        const schemaQuery = `
-            SELECT * FROM problem_schemas 
-            WHERE problem_id = $1
-            ORDER BY sql_dialect
-        `;
-        
-        const schemaResult = await pool.query(schemaQuery, [problem.id]);
+        // Get problem schemas (if table exists)
+        let schemaResult = { rows: [] };
+        try {
+            const schemaQuery = `
+                SELECT * FROM problem_schemas 
+                WHERE problem_id = $1
+                ORDER BY sql_dialect
+            `;
+            schemaResult = await pool.query(schemaQuery, [problem.id]);
+        } catch (schemaError) {
+            console.log('Schema table not found or empty, using empty schemas');
+        }
         
         res.json({
             problem: problem,

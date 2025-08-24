@@ -38,6 +38,26 @@ router.post('/all', async (req, res) => {
         }
         console.log(`✅ Inserted ${categoriesInserted} categories`);
         
+        // Clear and recreate problem_schemas table
+        try {
+            await pool.query('DROP TABLE IF EXISTS problem_schemas CASCADE');
+            await pool.query(`
+                CREATE TABLE problem_schemas (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    problem_id UUID REFERENCES problems(id) ON DELETE CASCADE,
+                    sql_dialect VARCHAR(20) NOT NULL DEFAULT 'postgresql',
+                    setup_sql TEXT,
+                    expected_output JSONB,
+                    solution_sql TEXT,
+                    explanation TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Created problem_schemas table');
+        } catch (err) {
+            console.log('Schema table creation error:', err.message);
+        }
+        
         // Insert problems
         let problemsInserted = 0;
         let errors = 0;
@@ -79,21 +99,66 @@ router.post('/all', async (req, res) => {
             }
         }
         
-        console.log(`✅ Migration completed! Inserted ${problemsInserted} problems, ${errors} errors`);
+        console.log(`✅ Problems migration completed! Inserted ${problemsInserted} problems, ${errors} errors`);
+        
+        // Insert problem schemas (database schemas, sample data, expected output)
+        let schemasInserted = 0;
+        let schemaErrors = 0;
+        
+        if (exportData.problem_schemas && exportData.problem_schemas.length > 0) {
+            console.log(`📝 Starting schema migration for ${exportData.problem_schemas.length} schemas...`);
+            
+            for (const schema of exportData.problem_schemas) {
+                try {
+                    await pool.query(`
+                        INSERT INTO problem_schemas (
+                            problem_id, sql_dialect, setup_sql, expected_output,
+                            solution_sql, explanation, created_at
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    `, [
+                        schema.problem_id,
+                        schema.sql_dialect || 'postgresql',
+                        schema.setup_sql,
+                        schema.expected_output,
+                        schema.solution_sql,
+                        schema.explanation,
+                        schema.created_at || new Date()
+                    ]);
+                    schemasInserted++;
+                    
+                    if (schemasInserted % 20 === 0) {
+                        console.log(`📋 Processed ${schemasInserted} schemas...`);
+                    }
+                } catch (err) {
+                    console.log(`Schema for ${schema.problem_title} error:`, err.message);
+                    schemaErrors++;
+                }
+            }
+            
+            console.log(`✅ Schemas migration completed! Inserted ${schemasInserted} schemas, ${schemaErrors} errors`);
+        }
         
         // Final counts
         const problemCount = await pool.query('SELECT COUNT(*) FROM problems');
         const categoryCount = await pool.query('SELECT COUNT(*) FROM categories');
+        const schemaCount = await pool.query('SELECT COUNT(*) FROM problem_schemas');
         
         res.json({
             success: true,
-            message: 'Direct migration completed',
+            message: 'Direct migration completed with full schemas',
             counts: {
                 categories: parseInt(categoryCount.rows[0].count),
-                problems: parseInt(problemCount.rows[0].count)
+                problems: parseInt(problemCount.rows[0].count),
+                schemas: parseInt(schemaCount.rows[0].count)
             },
-            inserted: problemsInserted,
-            errors: errors
+            inserted: {
+                problems: problemsInserted,
+                schemas: schemasInserted
+            },
+            errors: {
+                problems: errors,
+                schemas: schemaErrors
+            }
         });
         
     } catch (error) {
