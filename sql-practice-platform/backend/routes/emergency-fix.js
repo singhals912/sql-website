@@ -250,9 +250,7 @@ router.post('/immediate-full-restore', async (req, res) => {
             await pool.query(`
                 INSERT INTO categories (id, name, slug, description, created_at)
                 VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (slug) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    description = EXCLUDED.description
+                ON CONFLICT (id) DO NOTHING
             `, [
                 category.id,
                 category.name,
@@ -274,11 +272,7 @@ router.post('/immediate-full-restore', async (req, res) => {
                     is_premium, is_active, numeric_id, tags, hints, created_at,
                     total_submissions, total_accepted, acceptance_rate
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-                ON CONFLICT (slug) DO UPDATE SET
-                    title = EXCLUDED.title,
-                    description = EXCLUDED.description,
-                    difficulty = EXCLUDED.difficulty,
-                    numeric_id = EXCLUDED.numeric_id
+                ON CONFLICT (id) DO NOTHING
             `, [
                 problem.id,
                 problem.title,
@@ -515,9 +509,6 @@ INSERT INTO employees (id, name, department, salary, hire_date, manager_id) VALU
                 INSERT INTO problem_schemas (
                     problem_id, sql_dialect, setup_sql, expected_output
                 ) VALUES ($1, $2, $3, $4)
-                ON CONFLICT (problem_id, sql_dialect) DO UPDATE SET
-                    setup_sql = EXCLUDED.setup_sql,
-                    expected_output = EXCLUDED.expected_output
             `, [
                 problem.id,
                 'postgresql',
