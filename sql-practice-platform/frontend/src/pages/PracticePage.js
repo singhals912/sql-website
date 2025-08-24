@@ -356,7 +356,7 @@ function PracticePage() {
     }
     
     // Parse sample data
-    const insertMatches = [...schema.setup_sql.matchAll(/INSERT INTO\s+(\w+)\s+VALUES\s+([\s\S]*?);/g)];
+    const insertMatches = [...schema.setup_sql.matchAll(/INSERT\s+INTO\s+(\w+)(?:\s*\([^)]+\))?\s+VALUES\s+([\s\S]*?);/gi)];
     insertMatches.forEach(match => {
       const tableName = match[1];
       const valuesText = match[2];
