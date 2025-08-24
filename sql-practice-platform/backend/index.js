@@ -61,6 +61,7 @@ app.use('/api/complete-migration', require('./routes/complete-migration'));
 app.use('/api/fix-problem-specific-schemas', require('./routes/fix-problem-specific-schemas'));
 app.use('/api/restore-original-schemas', require('./routes/restore-original-schemas'));
 app.use('/api/fix-apple-schema', require('./routes/fix-apple-schema'));
+app.use('/api/fix-all-schemas', require('./routes/fix-all-schemas'));
 
 // Health check
 app.get('/api/health', (req, res) => {

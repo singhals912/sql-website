@@ -105,7 +105,7 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemId) {
                     problemQuery = `
-                        SELECT ps.schema_sql as setup_sql, ps.expected_output 
+                        SELECT ps.setup_sql, ps.expected_output 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
@@ -113,7 +113,7 @@ router.post('/sql', async (req, res) => {
                     problemParams = [problemId, dialect];
                 } else {
                     problemQuery = `
-                        SELECT ps.schema_sql as setup_sql, ps.expected_output 
+                        SELECT ps.setup_sql, ps.expected_output 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.numeric_id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
