@@ -105,7 +105,7 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemId) {
                     problemQuery = `
-                        SELECT ps.setup_sql, ps.expected_output 
+                        SELECT ps.schema_sql as setup_sql, ps.sample_data 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
@@ -113,7 +113,7 @@ router.post('/sql', async (req, res) => {
                     problemParams = [problemId, dialect];
                 } else {
                     problemQuery = `
-                        SELECT ps.setup_sql, ps.expected_output 
+                        SELECT ps.schema_sql as setup_sql, ps.sample_data 
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
                         WHERE p.numeric_id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
@@ -125,7 +125,16 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemResult.rows.length > 0) {
                     setupSql = problemResult.rows[0].setup_sql;
-                    expectedOutput = problemResult.rows[0].expected_output;
+                    
+                    // Parse expected_output from sample_data JSON
+                    if (problemResult.rows[0].sample_data) {
+                        try {
+                            const parsedData = JSON.parse(problemResult.rows[0].sample_data);
+                            expectedOutput = parsedData.expected_output;
+                        } catch (e) {
+                            console.log('Could not parse sample_data for expected_output');
+                        }
+                    }
                 }
             } catch (setupError) {
                 console.error('Error getting problem setup:', setupError);
@@ -294,17 +303,26 @@ router.post('/sql', async (req, res) => {
                 await connection.end();
             }
         } else {
-            // PostgreSQL connection - Temporarily use main database for testing problems
-            const executorPool = new Pool({
-                host: 'localhost',
-                port: 5433,
-                database: 'sandbox',
-                user: 'postgres',
-                password: 'password',
-                max: 1,
-                idleTimeoutMillis: 5000,
-                connectionTimeoutMillis: 2000,
-            });
+            // PostgreSQL connection - Use Railway database with sandbox schema
+            const executorPool = new Pool(
+                process.env.DATABASE_URL 
+                    ? { 
+                        connectionString: process.env.DATABASE_URL,
+                        max: 1,
+                        idleTimeoutMillis: 5000,
+                        connectionTimeoutMillis: 2000,
+                    }
+                    : {
+                        host: process.env.DB_HOST || 'localhost',
+                        port: process.env.DB_PORT || 5432,
+                        database: process.env.DB_NAME || 'sql_practice',
+                        user: process.env.DB_USER || 'postgres',
+                        password: process.env.DB_PASSWORD || 'password',
+                        max: 1,
+                        idleTimeoutMillis: 5000,
+                        connectionTimeoutMillis: 2000,
+                    }
+            );
             
             try {
                 // Run setup SQL first if available
