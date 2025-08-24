@@ -55,6 +55,7 @@ app.use('/api/debug-db', require('./routes/debug-db'));
 app.use('/api/quick-fix', require('./routes/quick-fix'));
 app.use('/api/manual-schema-fix', require('./routes/manual-schema-fix'));
 app.use('/api/restore-db', require('./routes/restore-db'));
+app.use('/api/fix-schema-table', require('./routes/fix-schema-table'));
 
 // Health check
 app.get('/api/health', (req, res) => {
