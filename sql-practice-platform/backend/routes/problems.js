@@ -400,17 +400,19 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Get single problem by ID (for frontend compatibility)
+// Get single problem by ID or numeric_id (for frontend compatibility)
 router.get('/:id(\\d+)', async (req, res) => {
     try {
-        const problemId = parseInt(req.params.id);
+        const idValue = parseInt(req.params.id);
         
+        // Try both ID and numeric_id to handle different frontend calling patterns
         const result = await pool.query(`
             SELECT p.*, c.name as category_name, c.slug as category_slug
             FROM problems p
             LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.id = $1 AND (p.is_active = true OR p.is_active IS NULL)
-        `, [problemId]);
+            WHERE (p.id = $1 OR p.numeric_id = $1) AND (p.is_active = true OR p.is_active IS NULL)
+            LIMIT 1
+        `, [idValue]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Problem not found' });
@@ -422,7 +424,7 @@ router.get('/:id(\\d+)', async (req, res) => {
         const schemaResult = await pool.query(`
             SELECT * FROM problem_schemas 
             WHERE problem_id = $1
-        `, [problemId]);
+        `, [problem.id]);
         
         if (schemaResult.rows.length > 0) {
             problem.schema = schemaResult.rows[0];
