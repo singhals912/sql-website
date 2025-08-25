@@ -30,8 +30,8 @@ router.post('/emergency-restore-all', async (req, res) => {
         const problems = [];
         const schemas = [];
         
-        // Start with high numeric_ids to avoid conflicts with existing problems
-        let nextNumericId = 11;
+        // Start with numeric_id 5 for the main Adobe problem
+        let nextNumericId = 5;
         
         // Problem 1: Adobe Creative Cloud (the working one)
         problems.push({
