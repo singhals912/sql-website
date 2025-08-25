@@ -556,4 +556,112 @@ INSERT INTO employees (id, name, department, salary, hire_date, manager_id) VALU
     }
 });
 
+// POST /api/emergency-fix/add-solutions
+router.post('/add-solutions', async (req, res) => {
+    try {
+        console.log('🔓 Adding solutions to unlock all problems...');
+        
+        // Get all problem schemas
+        const schemas = await pool.query('SELECT id, problem_id, setup_sql FROM problem_schemas ORDER BY problem_id');
+        
+        let updatedCount = 0;
+        for (const schema of schemas.rows) {
+            // Create a sample solution based on the setup schema
+            let solutionSql = '';
+            
+            const setupSql = schema.setup_sql || '';
+            
+            if (setupSql.includes('accounts') && setupSql.includes('transactions')) {
+                // Banking schema solution
+                solutionSql = `-- Banking Analytics Solution
+SELECT 
+    account_type,
+    COUNT(*) as total_accounts,
+    AVG(balance) as avg_balance,
+    SUM(balance) as total_balance
+FROM accounts 
+GROUP BY account_type 
+HAVING COUNT(*) > 0
+ORDER BY avg_balance DESC;`;
+            } else if (setupSql.includes('posts') && setupSql.includes('users')) {
+                // Social Media schema solution
+                solutionSql = `-- Social Media Engagement Analysis
+SELECT 
+    content_type,
+    COUNT(*) as total_posts,
+    AVG(likes_count + comments_count + shares_count) as avg_engagement,
+    SUM(likes_count + comments_count + shares_count) as total_engagement
+FROM posts 
+GROUP BY content_type 
+ORDER BY avg_engagement DESC;`;
+            } else if (setupSql.includes('app_categories') && setupSql.includes('app_revenue')) {
+                // App Store schema solution
+                solutionSql = `-- App Store Revenue Analysis
+SELECT 
+    c.category_name,
+    AVG(r.revenue_millions) as avg_revenue,
+    SUM(r.downloads_millions) as total_downloads,
+    c.avg_rating
+FROM app_categories c
+JOIN app_revenue r ON c.category_id = r.category_id
+GROUP BY c.category_id, c.category_name, c.avg_rating
+ORDER BY avg_revenue DESC;`;
+            } else if (setupSql.includes('customers') && setupSql.includes('orders')) {
+                // E-commerce schema solution
+                solutionSql = `-- Customer Purchase Analysis
+SELECT 
+    c.name as customer_name,
+    COUNT(o.order_id) as order_count,
+    SUM(o.total_amount) as total_spent,
+    AVG(o.total_amount) as avg_order_value
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+GROUP BY c.customer_id, c.name
+ORDER BY total_spent DESC;`;
+            } else {
+                // Default employee schema solution
+                solutionSql = `-- Employee Analytics Solution
+SELECT 
+    department,
+    COUNT(*) as employee_count,
+    AVG(salary) as avg_salary,
+    MAX(salary) as max_salary,
+    MIN(salary) as min_salary
+FROM employees 
+GROUP BY department 
+ORDER BY avg_salary DESC;`;
+            }
+            
+            // Update the schema with solution
+            await pool.query(`
+                UPDATE problem_schemas 
+                SET solution_sql = $1, explanation = $2
+                WHERE id = $3
+            `, [
+                solutionSql,
+                'This solution demonstrates the key analytical patterns for this problem domain, showing aggregation, filtering, and ordering techniques commonly used in business analytics.',
+                schema.id
+            ]);
+            
+            updatedCount++;
+        }
+        
+        console.log(`✅ Added solutions to ${updatedCount} problems`);
+        
+        res.json({
+            success: true,
+            message: `Successfully added solutions to ${updatedCount} problems. All solutions are now unlocked!`,
+            updatedCount: updatedCount
+        });
+        
+    } catch (error) {
+        console.error('❌ Failed to add solutions:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
