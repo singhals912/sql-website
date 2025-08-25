@@ -66,8 +66,8 @@ function ProblemsPage() {
       
       if (selectedCompany !== 'all') params.append('company', selectedCompany);
       
-      // Try Railway backend first, fallback to mock data
-      const response = await fetch(`https://sql-website-production-d4d1.up.railway.app/api/sql/problems?${params}`);
+      // Use configured API URL
+      const response = await fetch(sqlUrl(`problems?${params}`));
       
       if (!response.ok) {
         throw new Error('Railway API failed');
