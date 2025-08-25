@@ -126,10 +126,13 @@ router.post('/sql', async (req, res) => {
                 
                 const problemResult = await pool.query(problemQuery, problemParams);
                 
+                console.log('DEBUG: problemResult.rows.length:', problemResult.rows.length);
                 if (problemResult.rows.length > 0) {
+                    console.log('DEBUG: problemResult.rows[0]:', problemResult.rows[0]);
                     setupSql = problemResult.rows[0].setup_sql;
                     expectedOutput = problemResult.rows[0].expected_output;
                     sampleData = problemResult.rows[0].sample_data;
+                    console.log('DEBUG: expectedOutput after assignment:', expectedOutput);
                 }
             } catch (setupError) {
                 console.error('Error getting problem setup:', setupError);
@@ -354,6 +357,10 @@ router.post('/sql', async (req, res) => {
                 // Check if result matches expected output (if available)
                 let isCorrect = null; // null means "cannot validate"
                 let feedback = "Query executed successfully";
+                
+                console.log('DEBUG: PostgreSQL Validation check - expectedOutput:', expectedOutput);
+                console.log('DEBUG: expectedOutput type:', typeof expectedOutput);
+                console.log('DEBUG: expectedOutput length:', expectedOutput ? expectedOutput.length : 'N/A');
                 
                 if (expectedOutput && expectedOutput.length > 0) {
                     // Compare user result with expected output
