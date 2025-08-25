@@ -86,7 +86,7 @@ function PracticePage() {
       const data = await response.json();
       
       if (response.ok) {
-        setProblem(data.problem);
+        setProblem(data);
         setSchema(data.schema);
         // Don't reset sqlQuery here - let the caching useEffect handle it
         setShowSolution(false); // Reset solution visibility
