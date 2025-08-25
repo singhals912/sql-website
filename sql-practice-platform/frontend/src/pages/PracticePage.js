@@ -778,9 +778,52 @@ function PracticePage() {
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="text-gray-900 dark:text-white font-semibold">Official Solution</h4>
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(schema.solution_sql);
-                              // Could add a toast notification here
+                            onClick={async () => {
+                              try {
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                  await navigator.clipboard.writeText(schema.solution_sql);
+                                  // Show success feedback
+                                  const button = event.target;
+                                  const originalText = button.textContent;
+                                  button.textContent = 'Copied!';
+                                  button.className = 'px-3 py-1.5 bg-green-600 text-white text-sm rounded transition-colors';
+                                  setTimeout(() => {
+                                    button.textContent = originalText;
+                                    button.className = 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors';
+                                  }, 2000);
+                                } else {
+                                  // Fallback for older browsers
+                                  const textArea = document.createElement('textarea');
+                                  textArea.value = schema.solution_sql;
+                                  textArea.style.position = 'fixed';
+                                  textArea.style.opacity = '0';
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+                                  document.execCommand('copy');
+                                  document.body.removeChild(textArea);
+                                  
+                                  // Show success feedback
+                                  const button = event.target;
+                                  const originalText = button.textContent;
+                                  button.textContent = 'Copied!';
+                                  button.className = 'px-3 py-1.5 bg-green-600 text-white text-sm rounded transition-colors';
+                                  setTimeout(() => {
+                                    button.textContent = originalText;
+                                    button.className = 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors';
+                                  }, 2000);
+                                }
+                              } catch (error) {
+                                console.error('Failed to copy solution:', error);
+                                // Show error feedback
+                                const button = event.target;
+                                const originalText = button.textContent;
+                                button.textContent = 'Copy Failed!';
+                                button.className = 'px-3 py-1.5 bg-red-600 text-white text-sm rounded transition-colors';
+                                setTimeout(() => {
+                                  button.textContent = originalText;
+                                  button.className = 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors';
+                                }, 2000);
+                              }
                             }}
                             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
                           >
