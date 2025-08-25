@@ -107,6 +107,7 @@ router.get('/problems/:id', async (req, res) => {
         }
         
         const problem = problemResult.rows[0];
+        console.log('DEBUG SQL route: Found problem with ID:', problem.id, 'numeric_id:', problem.numeric_id);
         
         // Get problem schemas (if table exists)
         let schemaResult = { rows: [] };
@@ -117,8 +118,12 @@ router.get('/problems/:id', async (req, res) => {
                 ORDER BY id
             `;
             schemaResult = await pool.query(schemaQuery, [problem.id]);
+            console.log('DEBUG SQL route: Schema query result rows:', schemaResult.rows.length);
+            if (schemaResult.rows.length > 0) {
+                console.log('DEBUG SQL route: First schema row:', schemaResult.rows[0]);
+            }
         } catch (schemaError) {
-            console.log('Schema table not found or empty, using empty schemas');
+            console.log('Schema table not found or empty, using empty schemas', schemaError.message);
         }
         
         // Transform schema data to match frontend expectations
