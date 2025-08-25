@@ -58,6 +58,13 @@ try {
 }
 
 try {
+  app.use('/api/import-complete', require('./routes/import-complete'));
+  console.log('✅ Import-complete route loaded');
+} catch (e) {
+  console.error('❌ Import-complete route failed:', e.message);
+}
+
+try {
   app.use('/api/emergency-fix', require('./routes/emergency-fix'));
   console.log('✅ Emergency-fix route loaded');
 } catch (e) {
