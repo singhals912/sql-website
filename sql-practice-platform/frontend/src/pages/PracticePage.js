@@ -68,7 +68,7 @@ function PracticePage() {
   // Define callback functions first (before useEffect that uses them)
   const setupProblemEnvironment = async (id) => {
     try {
-      await fetch(apiUrl(`problems/${id}/setup`), {
+      await fetch(sqlUrl(`problems/${id}/setup`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,15 +82,15 @@ function PracticePage() {
 
   const loadProblem = useCallback(async (id) => {
     try {
-      const response = await fetch(apiUrl(`problems/${id}`));
+      const response = await fetch(sqlUrl(`problems/${id}`));
       const data = await response.json();
       
       if (response.ok) {
         console.log('DEBUG: Successfully loaded problem data:', data);
-        console.log('DEBUG: Problem title:', data.title);
-        console.log('DEBUG: Problem numeric_id:', data.numeric_id);
-        setProblem(data);
-        setSchema(data.schema);
+        console.log('DEBUG: Problem title:', data.problem?.title);
+        console.log('DEBUG: Problem numeric_id:', data.problem?.numeric_id);
+        setProblem(data.problem);
+        setSchema(data.schema || data.problem?.schema);
         // Don't reset sqlQuery here - let the caching useEffect handle it
         setShowSolution(false); // Reset solution visibility
         // Clear results and errors when loading a new problem
@@ -229,7 +229,7 @@ function PracticePage() {
         }
       } else {
         // Load all problems (default behavior)
-        const response = await fetch(apiUrl('problems'));
+        const response = await fetch(sqlUrl('problems'));
         const data = await response.json();
         if (response.ok && data.problems) {
           // Sort problems by numeric_id for sequential ordering
