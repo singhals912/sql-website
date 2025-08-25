@@ -778,7 +778,7 @@ function PracticePage() {
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="text-gray-900 dark:text-white font-semibold">Official Solution</h4>
                           <button
-                            onClick={async () => {
+                            onClick={async (event) => {
                               try {
                                 if (navigator.clipboard && navigator.clipboard.writeText) {
                                   await navigator.clipboard.writeText(schema.solution_sql);
