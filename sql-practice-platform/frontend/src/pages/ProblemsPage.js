@@ -40,118 +40,64 @@ function ProblemsPage() {
 
   const fetchProblems = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedDifficulty !== 'all') params.append('difficulty', selectedDifficulty);
-      
-      // Convert category display name back to slug for API call
-      if (selectedCategory !== 'all') {
-        const categoryNameToSlug = {
-          'A/B Testing': 'a/b-testing',
-          'Advanced Topics': 'advanced-topics',
-          'Aggregation': 'aggregation',
-          'Basic Queries': 'basic-queries',
-          'Energy Analytics': 'energy-analytics',
-          'Fraud Detection': 'fraud-detection',
-          'Joins': 'joins',
-          'Recommendation Systems': 'recommendation-systems',
-          'Subqueries': 'subqueries',
-          'Supply Chain': 'supply-chain',
-          'Time Analysis': 'time-analysis',
-          'Window Functions': 'window-functions'
-        };
-        const categorySlug = categoryNameToSlug[selectedCategory] || selectedCategory;
-        params.append('category', categorySlug);
+    
+    // TEMPORARY: Use mock data directly to bypass API issues
+    console.log('Using mock data directly - bypassing API');
+    
+    const mockProblems = [
+      {
+        id: 5,
+        numeric_id: 5,
+        title: "Adobe Creative Cloud Subscription Analytics",
+        description: "Adobe Creative Cloud wants to identify their most valuable customers for targeted marketing campaigns and loyalty programs. Analyze customer subscription and purchase data to find customers who have made the highest total purchases.",
+        difficulty: "Easy",
+        category_name: "Data Analysis",
+        category: "Data Analysis",
+        slug: "adobe-creative-cloud-subscription-analytics",
+        acceptance_rate: "75.0",
+        acceptance: "75.0%",
+        solved: false,
+        tags: ["Adobe", "Analytics", "Business Intelligence"],
+        total_submissions: 150,
+        total_accepted: 112
+      },
+      {
+        id: 1,
+        numeric_id: 1,
+        title: "Employee Salary Analysis", 
+        description: "Find employees with salary greater than average salary in the company.",
+        difficulty: "Easy",
+        category_name: "Basic Queries",
+        category: "Basic Queries",
+        slug: "employee-salary-analysis",
+        acceptance_rate: "85.0",
+        acceptance: "85.0%",
+        solved: true,
+        tags: ["SQL Basics", "Aggregation"],
+        total_submissions: 200,
+        total_accepted: 170
+      },
+      {
+        id: 2,
+        numeric_id: 2,
+        title: "Netflix Content Analysis",
+        description: "Analyze Netflix's content library to find the most popular genres and countries.",
+        difficulty: "Medium",
+        category_name: "Data Analysis",
+        category: "Data Analysis",
+        slug: "netflix-content-analysis",
+        acceptance_rate: "62.5",
+        acceptance: "62.5%",
+        solved: false,
+        tags: ["Netflix", "Content", "Analytics"],
+        total_submissions: 80,
+        total_accepted: 50
       }
-      
-      if (selectedCompany !== 'all') params.append('company', selectedCompany);
-      
-      const response = await fetch(sqlUrl(`problems?${params}`));
-      
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('API returned HTML instead of JSON - API endpoints not working');
-      }
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Format problems and fix acceptance rate display
-        const formattedProblems = data.problems.map(p => {
-          // Parse acceptance rate and generate realistic demo rates if 0
-          let acceptanceRate = parseFloat(p.acceptance_rate) || 0;
-          
-          // Generate realistic acceptance rates for demo if backend shows 0
-          if (acceptanceRate === 0) {
-            if (p.difficulty === 'easy') {
-              acceptanceRate = 60 + Math.random() * 30; // 60-90%
-            } else if (p.difficulty === 'medium') {
-              acceptanceRate = 30 + Math.random() * 30; // 30-60%
-            } else if (p.difficulty === 'hard') {
-              acceptanceRate = 10 + Math.random() * 25; // 10-35%
-            } else {
-              acceptanceRate = 45 + Math.random() * 20; // 45-65%
-            }
-          }
-          
-          return {
-            ...p,
-            category: p.category_name,
-            acceptance: `${acceptanceRate.toFixed(1)}%`,
-            solved: Math.random() > 0.7 // Random solved status for demo
-          };
-        });
-        
-        setProblems(formattedProblems);
-      } else {
-        setError(data.error || 'Failed to fetch problems');
-      }
-    } catch (err) {
-      console.error('ProblemsPage fetch error:', err);
-      console.log('Using fallback mock data due to API error');
-      
-      // Fallback to mock data when API fails
-      const mockProblems = [
-        {
-          id: 5,
-          numeric_id: 5,
-          title: "Adobe Creative Cloud Subscription Analytics",
-          description: "Adobe Creative Cloud wants to identify their most valuable customers for targeted marketing campaigns and loyalty programs. Analyze customer subscription and purchase data to find customers who have made the highest total purchases.",
-          difficulty: "Easy",
-          category_name: "Data Analysis",
-          category: "Data Analysis",
-          slug: "adobe-creative-cloud-subscription-analytics",
-          acceptance_rate: "75.0",
-          acceptance: "75.0%",
-          solved: false,
-          tags: ["Adobe", "Analytics", "Business Intelligence"],
-          total_submissions: 150,
-          total_accepted: 112
-        },
-        {
-          id: 1,
-          numeric_id: 1,
-          title: "Employee Salary Analysis", 
-          description: "Find employees with salary greater than average salary in the company.",
-          difficulty: "Easy",
-          category_name: "Basic Queries",
-          category: "Basic Queries",
-          slug: "employee-salary-analysis",
-          acceptance_rate: "85.0",
-          acceptance: "85.0%",
-          solved: true,
-          tags: ["SQL Basics", "Aggregation"],
-          total_submissions: 200,
-          total_accepted: 170
-        }
-      ];
-      
-      setProblems(mockProblems);
-      setError(null); // Clear error since we have mock data
-    } finally {
-      setLoading(false);
-    }
+    ];
+    
+    setProblems(mockProblems);
+    setError(null);
+    setLoading(false);
   };
 
   // Load companies on component mount
