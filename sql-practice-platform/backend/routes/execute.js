@@ -97,6 +97,7 @@ router.post('/sql', async (req, res) => {
         const startTime = Date.now();
         let setupSql = null;
         let expectedOutput = null;
+        let sampleData = null;
         
         // Get problem setup and expected output if problemId is provided
         if (problemId || problemNumericId) {
@@ -128,6 +129,7 @@ router.post('/sql', async (req, res) => {
                 if (problemResult.rows.length > 0) {
                     setupSql = problemResult.rows[0].setup_sql;
                     expectedOutput = problemResult.rows[0].expected_output;
+                    sampleData = problemResult.rows[0].sample_data;
                 }
             } catch (setupError) {
                 console.error('Error getting problem setup:', setupError);
@@ -334,6 +336,11 @@ router.post('/sql', async (req, res) => {
                     
                     // Execute setup SQL
                     await executorPool.query(setupSql);
+                    
+                    // Execute sample data if available
+                    if (sampleData) {
+                        await executorPool.query(sampleData);
+                    }
                 }
                 
                 // Execute user's query with security logging
