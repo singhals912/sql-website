@@ -114,7 +114,7 @@ router.get('/problems/:id', async (req, res) => {
             const schemaQuery = `
                 SELECT * FROM problem_schemas 
                 WHERE problem_id = $1
-                ORDER BY sql_dialect
+                ORDER BY id
             `;
             schemaResult = await pool.query(schemaQuery, [problem.id]);
         } catch (schemaError) {
@@ -128,13 +128,13 @@ router.get('/problems/:id', async (req, res) => {
             transformedSchema = {
                 id: rawSchema.id,
                 problem_id: rawSchema.problem_id,
-                sql_dialect: rawSchema.sql_dialect,
+                schema_name: rawSchema.schema_name,
                 setup_sql: rawSchema.setup_sql, // This is the key field frontend needs
+                sample_data: rawSchema.sample_data,
                 expected_output: rawSchema.expected_output,
                 solution_sql: rawSchema.solution_sql,
-                explanation: rawSchema.explanation,
-                created_at: rawSchema.created_at,
-                schema_sql: rawSchema.schema_sql
+                teardown_sql: rawSchema.teardown_sql,
+                created_at: rawSchema.created_at
             };
         }
         
