@@ -303,6 +303,9 @@ router.post('/sql', async (req, res) => {
                 process.env.DATABASE_URL 
                     ? { 
                         connectionString: process.env.DATABASE_URL,
+                        ssl: process.env.NODE_ENV === 'production' ? {
+                            rejectUnauthorized: false
+                        } : false,
                         max: 1,
                         idleTimeoutMillis: 5000,
                         connectionTimeoutMillis: 2000,
