@@ -1,82 +1,68 @@
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Environment validation - temporarily simplified for deployment
-try {
-  const { validation } = require('./config/environment');
-  if (!validation.isValid) {
-    console.error('🚨 Environment validation issues:');
-    console.error('Errors:', validation.errors);
-    console.warn('⚠️ Continuing startup for emergency deployment');
-  } else {
-    console.log('✅ Environment validation passed');
-  }
-} catch (envError) {
-  console.error('⚠️ Environment validation failed to load:', envError.message);
-  console.log('Continuing startup without environment validation');
-}
+console.log('🚀 Starting SQL Practice Platform Backend...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware
-app.use(helmet());
-app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', process.env.FRONTEND_URL].filter(Boolean),
-    credentials: true
-}));
+// Essential middleware only for startup
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('combined'));
 
-// Rate limiting - Very generous limits for development
-const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 5000 // limit each IP to 5000 requests per minute
+// CORS - simplified for startup
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-session-id');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
 });
-app.use(limiter);
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/problems', require('./routes/problems'));
-app.use('/api/problems', require('./routes/problems-learning-paths'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/execute', require('./routes/execute'));
-app.use('/api/sql', require('./routes/sql'));
-app.use('/api/learning-paths', require('./routes/learning-paths'));
-app.use('/api/bookmarks', require('./routes/bookmarks'));
-app.use('/api/progress', require('./routes/progress'));
-app.use('/api/recommendations', require('./routes/recommendations'));
-app.use('/api/learning', require('./routes/learning'));
-app.use('/api/monitor', require('./routes/monitor'));
-app.use('/api/migrate', require('./routes/migrate'));
-app.use('/api/migrate-simple', require('./routes/migrate-simple'));
-app.use('/api/migrate-data', require('./routes/migrate-data'));
-app.use('/api/migrate-full', require('./routes/migrate-full'));
-app.use('/api/migrate-real', require('./routes/migrate-real'));
-app.use('/api/migrate-direct', require('./routes/migrate-direct'));
-app.use('/api/debug-db', require('./routes/debug-db'));
-app.use('/api/quick-fix', require('./routes/quick-fix'));
-app.use('/api/manual-schema-fix', require('./routes/manual-schema-fix'));
-app.use('/api/restore-db', require('./routes/restore-db'));
-app.use('/api/fix-schema-table', require('./routes/fix-schema-table'));
-app.use('/api/add-abn-schema', require('./routes/add-abn-schema'));
-app.use('/api/complete-migration', require('./routes/complete-migration'));
-app.use('/api/fix-problem-specific-schemas', require('./routes/fix-problem-specific-schemas'));
-app.use('/api/restore-original-schemas', require('./routes/restore-original-schemas'));
-app.use('/api/fix-apple-schema', require('./routes/fix-apple-schema'));
-app.use('/api/fix-all-schemas', require('./routes/fix-all-schemas'));
-app.use('/api/emergency-fix', require('./routes/emergency-fix'));
-app.use('/api/complete-database-restore', require('./routes/complete-database-restore'));
+// Basic middleware - simplified for reliable startup
+app.use(express.urlencoded({ extended: true }));
 
-// Health check
+// Health check - FIRST to ensure it's always available
 app.get('/api/health', (req, res) => {
+    console.log('Health check requested');
     res.json({ status: 'ok', message: 'Server is running', timestamp: new Date().toISOString() });
 });
+
+// Essential routes only for startup - load others after server starts
+console.log('Loading essential routes...');
+
+try {
+  app.use('/api/problems', require('./routes/problems'));
+  console.log('✅ Problems route loaded');
+} catch (e) {
+  console.error('❌ Problems route failed:', e.message);
+}
+
+try {
+  app.use('/api/sql', require('./routes/sql'));
+  console.log('✅ SQL route loaded');
+} catch (e) {
+  console.error('❌ SQL route failed:', e.message);
+}
+
+try {
+  app.use('/api/execute', require('./routes/execute'));
+  console.log('✅ Execute route loaded');
+} catch (e) {
+  console.error('❌ Execute route failed:', e.message);
+}
+
+try {
+  app.use('/api/emergency-fix', require('./routes/emergency-fix'));
+  console.log('✅ Emergency-fix route loaded');
+} catch (e) {
+  console.error('❌ Emergency-fix route failed:', e.message);
+}
 
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -100,13 +86,35 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Express error:', err.stack);
     res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Catch-all route for 404s
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Route not found' });
+});
+
+// Start server with enhanced error handling
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🎉 Server successfully started on port ${PORT}`);
+    console.log(`🏥 Health check available at: http://0.0.0.0:${PORT}/api/health`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+server.on('error', (err) => {
+    console.error('🚨 Server startup error:', err);
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+    }
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('🚨 Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 module.exports = app;
