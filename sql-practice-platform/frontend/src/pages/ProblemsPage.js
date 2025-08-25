@@ -67,6 +67,13 @@ function ProblemsPage() {
       if (selectedCompany !== 'all') params.append('company', selectedCompany);
       
       const response = await fetch(sqlUrl(`problems?${params}`));
+      
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('API returned HTML instead of JSON - API endpoints not working');
+      }
+      
       const data = await response.json();
       
       if (response.ok) {
