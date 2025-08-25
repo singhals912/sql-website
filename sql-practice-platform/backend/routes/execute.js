@@ -105,20 +105,22 @@ router.post('/sql', async (req, res) => {
                 
                 if (problemId) {
                     problemQuery = `
-                        SELECT ps.setup_sql, ps.expected_output 
+                        SELECT ps.setup_sql, ps.expected_output, ps.sample_data
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
-                        WHERE p.id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
+                        WHERE p.id = $1 AND (p.is_active = true OR p.is_active IS NULL)
+                        LIMIT 1
                     `;
-                    problemParams = [problemId, dialect];
+                    problemParams = [problemId];
                 } else {
                     problemQuery = `
-                        SELECT ps.setup_sql, ps.expected_output 
+                        SELECT ps.setup_sql, ps.expected_output, ps.sample_data
                         FROM problems p 
                         JOIN problem_schemas ps ON p.id = ps.problem_id 
-                        WHERE p.numeric_id = $1 AND ps.sql_dialect = $2 AND p.is_active = true
+                        WHERE p.numeric_id = $1 AND (p.is_active = true OR p.is_active IS NULL)
+                        LIMIT 1
                     `;
-                    problemParams = [problemNumericId, dialect];
+                    problemParams = [problemNumericId];
                 }
                 
                 const problemResult = await pool.query(problemQuery, problemParams);
