@@ -34,7 +34,7 @@ router.post('/emergency-restore-all', async (req, res) => {
         problems.push({
             id: 1, title: 'Adobe Creative Cloud Subscription Analytics',
             description: 'Analyze subscription data for Adobe Creative Cloud to identify top customers by total spending. Join customer and order tables to calculate spending metrics.',
-            difficulty: 'Easy', category_id: 2, slug: 'adobe-creative-cloud-subscription-analytics', numeric_id: 5,
+            difficulty: 'Easy', category_id: 2, slug: 'adobe-creative-cloud-subscription-analytics', numeric_id: 1,
             solution_sql: 'SELECT c.name as customer_name, COUNT(o.order_id) as order_count, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.status = \'completed\' GROUP BY c.customer_id, c.name ORDER BY total_spent DESC;',
             expected_output: '[{"customer_name":"John Smith","order_count":"2","total_spent":"389.98"},{"customer_name":"Jane Doe","order_count":"2","total_spent":"349.49"}]'
         });
@@ -51,7 +51,7 @@ router.post('/emergency-restore-all', async (req, res) => {
         problems.push({
             id: 2, title: 'Employee Salary Analysis',
             description: 'Find employees with salary greater than average salary in the company.',
-            difficulty: 'Easy', category_id: 1, slug: 'employee-salary-analysis', numeric_id: 1,
+            difficulty: 'Easy', category_id: 1, slug: 'employee-salary-analysis', numeric_id: 2,
             solution_sql: 'SELECT name, salary FROM employees WHERE salary > (SELECT AVG(salary) FROM employees);',
             expected_output: '[{"name":"John Smith","salary":"75000.00"},{"name":"Sarah Wilson","salary":"82000.00"}]'
         });
