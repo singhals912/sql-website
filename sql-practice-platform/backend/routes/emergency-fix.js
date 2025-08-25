@@ -560,6 +560,58 @@ GROUP BY department
 ORDER BY avg_salary DESC;`;
             }
             
+            // Create contextual solution based on schema type
+            let solutionSql = '';
+            if (selectedSchema === contextualSchemas.social_media) {
+                solutionSql = `-- Social Media Engagement Analysis
+SELECT 
+    content_type,
+    COUNT(*) as total_posts,
+    AVG(likes_count + comments_count + shares_count) as avg_engagement
+FROM posts 
+GROUP BY content_type 
+ORDER BY avg_engagement DESC;`;
+            } else if (selectedSchema === contextualSchemas.app_store) {
+                solutionSql = `-- App Store Revenue Analysis  
+SELECT 
+    c.category_name,
+    SUM(r.revenue_millions) as total_revenue,
+    AVG(r.downloads_millions) as avg_downloads
+FROM app_categories c
+JOIN app_revenue r ON c.category_id = r.category_id
+GROUP BY c.category_name
+ORDER BY total_revenue DESC;`;
+            } else if (selectedSchema === contextualSchemas.banking) {
+                solutionSql = `-- Banking Portfolio Analysis
+SELECT 
+    account_type,
+    COUNT(*) as total_accounts,
+    AVG(balance) as avg_balance
+FROM accounts 
+GROUP BY account_type 
+ORDER BY avg_balance DESC;`;
+            } else if (selectedSchema === contextualSchemas.ecommerce) {
+                solutionSql = `-- Customer Purchase Analysis
+SELECT 
+    c.name as customer_name,
+    COUNT(o.order_id) as order_count,
+    SUM(o.total_amount) as total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+GROUP BY c.customer_id, c.name
+ORDER BY total_spent DESC;`;
+            } else {
+                solutionSql = `-- Employee Department Analysis
+SELECT 
+    department,
+    COUNT(*) as employee_count,
+    AVG(salary) as avg_salary
+FROM employees 
+GROUP BY department 
+ORDER BY avg_salary DESC;`;
+            }
+            
             await pool.query(`
                 INSERT INTO problem_schemas (
                     problem_id, sql_dialect, setup_sql, expected_output, solution_sql, explanation
