@@ -86,6 +86,9 @@ function PracticePage() {
       const data = await response.json();
       
       if (response.ok) {
+        console.log('DEBUG: Successfully loaded problem data:', data);
+        console.log('DEBUG: Problem title:', data.title);
+        console.log('DEBUG: Problem numeric_id:', data.numeric_id);
         setProblem(data);
         setSchema(data.schema);
         // Don't reset sqlQuery here - let the caching useEffect handle it
@@ -100,8 +103,13 @@ function PracticePage() {
         // Setup problem environment
         await setupProblemEnvironment(id);
       }
+      } else {
+        console.error('DEBUG: API response not ok:', response.status, response.statusText);
+        console.error('DEBUG: Response data:', data);
+      }
     } catch (error) {
-      console.error('Failed to load problem:', error);
+      console.error('DEBUG: Failed to load problem:', error);
+      console.error('DEBUG: Error details:', error.message, error.stack);
     }
   }, [selectedDialect]);
 
@@ -564,6 +572,7 @@ function PracticePage() {
               {problem && (
                 <div className="flex items-center space-x-3">
                   <h1 className="text-lg font-medium text-gray-900 dark:text-white">
+                    {console.log('DEBUG RENDER: problem object:', problem) || ''}
                     {problem.numeric_id}. {problem.title}
                   </h1>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
