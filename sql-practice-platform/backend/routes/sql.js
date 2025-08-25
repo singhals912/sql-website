@@ -107,7 +107,6 @@ router.get('/problems/:id', async (req, res) => {
         }
         
         const problem = problemResult.rows[0];
-        console.log('DEBUG SQL route: Found problem with ID:', problem.id, 'numeric_id:', problem.numeric_id);
         
         // Get problem schemas (if table exists)
         let schemaResult = { rows: [] };
@@ -118,12 +117,8 @@ router.get('/problems/:id', async (req, res) => {
                 ORDER BY id
             `;
             schemaResult = await pool.query(schemaQuery, [problem.id]);
-            console.log('DEBUG SQL route: Schema query result rows:', schemaResult.rows.length);
-            if (schemaResult.rows.length > 0) {
-                console.log('DEBUG SQL route: First schema row:', schemaResult.rows[0]);
-            }
         } catch (schemaError) {
-            console.log('Schema table not found or empty, using empty schemas', schemaError.message);
+            console.log('Schema table not found or empty, using empty schemas');
         }
         
         // Transform schema data to match frontend expectations
@@ -143,15 +138,12 @@ router.get('/problems/:id', async (req, res) => {
             };
         }
         
-        console.log('DEBUG SQL route: About to send response with problem.title:', problem.title);
-        console.log('DEBUG SQL route: problem keys:', Object.keys(problem));
-        
         const response = {
             // Primary structure
             problem: problem,
             schema: transformedSchema,
             schemas: schemaResult.rows,
-            // Explicit fields for compatibility
+            // Direct fields for compatibility with different frontend expectations
             id: problem.id,
             numeric_id: problem.numeric_id,
             title: problem.title,
@@ -159,8 +151,6 @@ router.get('/problems/:id', async (req, res) => {
             difficulty: problem.difficulty,
             category_name: problem.category_name
         };
-        
-        console.log('DEBUG SQL route: Response title field:', response.title);
         
         res.json(response);
     } catch (error) {
