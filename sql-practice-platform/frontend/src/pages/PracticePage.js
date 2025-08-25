@@ -87,8 +87,10 @@ function PracticePage() {
       
       if (response.ok) {
         console.log('DEBUG: Successfully loaded problem data:', data);
+        console.log('DEBUG: Problem object exists:', !!data.problem);
         console.log('DEBUG: Problem title:', data.problem?.title);
         console.log('DEBUG: Problem numeric_id:', data.problem?.numeric_id);
+        console.log('DEBUG: Full problem object:', JSON.stringify(data.problem));
         setProblem(data.problem);
         setSchema(data.schema || data.problem?.schema);
         // Don't reset sqlQuery here - let the caching useEffect handle it
@@ -573,7 +575,8 @@ function PracticePage() {
                 <div className="flex items-center space-x-3">
                   <h1 className="text-lg font-medium text-gray-900 dark:text-white">
                     {console.log('DEBUG RENDER: problem object:', problem) || ''}
-                    {problem.numeric_id}. {problem.title}
+                    {console.log('DEBUG RENDER: numeric_id:', problem.numeric_id, 'title:', problem.title) || ''}
+                    {problem.numeric_id || 'No ID'}. {problem.title || 'No Title'}
                   </h1>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     problem.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
