@@ -143,17 +143,18 @@ router.get('/problems/:id', async (req, res) => {
             };
         }
         
-        res.json({
+        console.log('DEBUG SQL route: About to send response with problem.title:', problem.title);
+        
+        const response = {
+            // Primary structure
             problem: problem,
             schema: transformedSchema,
             schemas: schemaResult.rows,
-            // Legacy compatibility - provide data in multiple formats
-            id: problem.id,
-            numeric_id: problem.numeric_id,
-            title: problem.title,
-            description: problem.description,
-            difficulty: problem.difficulty
-        });
+            // Direct fields for compatibility
+            ...problem
+        };
+        
+        res.json(response);
     } catch (error) {
         console.error('Error fetching problem:', error);
         res.status(500).json({ error: 'Failed to fetch problem' });
