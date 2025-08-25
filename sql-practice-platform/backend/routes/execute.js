@@ -424,7 +424,14 @@ router.post('/sql', async (req, res) => {
                         rowCount: result.rowCount || 0,
                         executionTime,
                         isCorrect: isCorrect,
-                        feedback: feedback
+                        feedback: feedback,
+                        debug_info: {
+                            expectedOutput_type: typeof expectedOutput,
+                            expectedOutput_length: expectedOutput ? expectedOutput.length : null,
+                            expectedOutput_exists: !!expectedOutput,
+                            problemId: problemId,
+                            problemNumericId: problemNumericId
+                        }
                     }
                 });
             } catch (queryError) {
