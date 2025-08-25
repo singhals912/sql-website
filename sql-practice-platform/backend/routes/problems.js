@@ -2,6 +2,145 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
+// Emergency restore all problems route
+router.post('/emergency-restore-all', async (req, res) => {
+    try {
+        console.log('🚨 EMERGENCY RESTORE: Starting complete database restoration...');
+        
+        // Clear everything first
+        await pool.query('TRUNCATE problem_schemas, problems, categories RESTART IDENTITY CASCADE');
+        
+        // Recreate categories
+        const categories = [
+            { name: 'SQL Basics', slug: 'sql-basics', description: 'Fundamental SQL concepts and basic queries' },
+            { name: 'Data Analysis', slug: 'data-analysis', description: 'Business intelligence and analytics queries' },
+            { name: 'Advanced SQL', slug: 'advanced-sql', description: 'Complex SQL operations and optimization' },
+            { name: 'Joins', slug: 'joins', description: 'Table relationships and join operations' },
+            { name: 'Aggregations', slug: 'aggregations', description: 'GROUP BY, HAVING, and aggregate functions' }
+        ];
+        
+        for (let i = 0; i < categories.length; i++) {
+            await pool.query(
+                'INSERT INTO categories (id, name, slug, description) VALUES ($1, $2, $3, $4)',
+                [i + 1, categories[i].name, categories[i].slug, categories[i].description]
+            );
+        }
+        
+        // Create comprehensive set of test problems
+        const problems = [];
+        const schemas = [];
+        
+        // Problem 1: Adobe Creative Cloud (the working one)
+        problems.push({
+            id: 1, title: 'Adobe Creative Cloud Subscription Analytics',
+            description: 'Analyze subscription data for Adobe Creative Cloud to identify top customers by total spending. Join customer and order tables to calculate spending metrics.',
+            difficulty: 'Easy', category_id: 2, slug: 'adobe-creative-cloud-subscription-analytics', numeric_id: 5,
+            solution_sql: 'SELECT c.name as customer_name, COUNT(o.order_id) as order_count, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.status = \'completed\' GROUP BY c.customer_id, c.name ORDER BY total_spent DESC;',
+            expected_output: '[{"customer_name":"John Smith","order_count":"2","total_spent":"389.98"},{"customer_name":"Jane Doe","order_count":"2","total_spent":"349.49"}]'
+        });
+        
+        schemas.push({
+            problem_id: 1, schema_name: 'ecommerce',
+            setup_sql: 'CREATE TABLE customers (customer_id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), registration_date DATE); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER REFERENCES customers(customer_id), total_amount DECIMAL(10,2), status VARCHAR(50), order_date DATE);',
+            sample_data: 'INSERT INTO customers VALUES (1, \'John Smith\', \'john@example.com\', \'2024-01-15\'), (2, \'Jane Doe\', \'jane@example.com\', \'2024-02-01\'); INSERT INTO orders VALUES (1, 1, 199.99, \'completed\', \'2024-03-01\'), (2, 1, 189.99, \'completed\', \'2024-03-15\'), (3, 2, 149.99, \'completed\', \'2024-03-02\'), (4, 2, 199.50, \'completed\', \'2024-03-20\');',
+            expected_output: '[{"customer_name":"John Smith","order_count":"2","total_spent":"389.98"},{"customer_name":"Jane Doe","order_count":"2","total_spent":"349.49"}]',
+            solution_sql: 'SELECT c.name as customer_name, COUNT(o.order_id) as order_count, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.status = \'completed\' GROUP BY c.customer_id, c.name ORDER BY total_spent DESC;'
+        });
+        
+        // Problem 2: Basic Employee Query
+        problems.push({
+            id: 2, title: 'Employee Salary Analysis',
+            description: 'Find employees with salary greater than average salary in the company.',
+            difficulty: 'Easy', category_id: 1, slug: 'employee-salary-analysis', numeric_id: 1,
+            solution_sql: 'SELECT name, salary FROM employees WHERE salary > (SELECT AVG(salary) FROM employees);',
+            expected_output: '[{"name":"John Smith","salary":"75000.00"},{"name":"Sarah Wilson","salary":"82000.00"}]'
+        });
+        
+        schemas.push({
+            problem_id: 2, schema_name: 'hr',
+            setup_sql: 'CREATE TABLE employees (id SERIAL PRIMARY KEY, name VARCHAR(100), salary DECIMAL(10,2), department VARCHAR(50), hire_date DATE);',
+            sample_data: 'INSERT INTO employees VALUES (1, \'John Smith\', 75000, \'Engineering\', \'2023-01-15\'), (2, \'Jane Doe\', 65000, \'Marketing\', \'2023-02-01\'), (3, \'Sarah Wilson\', 82000, \'Engineering\', \'2023-01-20\'), (4, \'Mike Brown\', 58000, \'Sales\', \'2023-03-10\');',
+            expected_output: '[{"name":"John Smith","salary":"75000.00"},{"name":"Sarah Wilson","salary":"82000.00"}]',
+            solution_sql: 'SELECT name, salary FROM employees WHERE salary > (SELECT AVG(salary) FROM employees);'
+        });
+        
+        // Add more problems for completeness (up to 10 to start)
+        for (let i = 3; i <= 10; i++) {
+            problems.push({
+                id: i, title: `SQL Practice Problem ${i}`,
+                description: `Practice problem ${i} for SQL learning and skill development.`,
+                difficulty: i <= 4 ? 'Easy' : (i <= 7 ? 'Medium' : 'Hard'),
+                category_id: ((i - 1) % 5) + 1, slug: `sql-practice-problem-${i}`, numeric_id: i,
+                solution_sql: 'SELECT * FROM sample_table;',
+                expected_output: '[{"id":"1","name":"Sample"}]'
+            });
+            
+            schemas.push({
+                problem_id: i, schema_name: 'sample',
+                setup_sql: 'CREATE TABLE sample_table (id SERIAL PRIMARY KEY, name VARCHAR(100));',
+                sample_data: 'INSERT INTO sample_table VALUES (1, \'Sample\');',
+                expected_output: '[{"id":"1","name":"Sample"}]',
+                solution_sql: 'SELECT * FROM sample_table;'
+            });
+        }
+        
+        // Insert all problems
+        for (const problem of problems) {
+            await pool.query(`
+                INSERT INTO problems (id, title, description, difficulty, category_id, slug, numeric_id, is_active, solution_sql, expected_output)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, [
+                problem.id, problem.title, problem.description, problem.difficulty,
+                problem.category_id, problem.slug, problem.numeric_id, true,
+                problem.solution_sql, problem.expected_output
+            ]);
+        }
+        
+        // Insert all schemas
+        for (const schema of schemas) {
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, setup_sql, sample_data, expected_output, solution_sql)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                schema.problem_id, schema.schema_name, schema.setup_sql,
+                schema.sample_data, schema.expected_output, schema.solution_sql
+            ]);
+        }
+        
+        // Reset sequence
+        await pool.query('SELECT setval(\'problems_id_seq\', (SELECT MAX(id) FROM problems))');
+        await pool.query('SELECT setval(\'categories_id_seq\', (SELECT MAX(id) FROM categories))');
+        
+        // Verify
+        const problemCount = await pool.query('SELECT COUNT(*) FROM problems');
+        const categoryCount = await pool.query('SELECT COUNT(*) FROM categories');
+        const schemaCount = await pool.query('SELECT COUNT(*) FROM problem_schemas');
+        
+        console.log('✅ EMERGENCY RESTORE COMPLETE');
+        console.log(`   - Categories: ${categoryCount.rows[0].count}`);
+        console.log(`   - Problems: ${problemCount.rows[0].count}`);
+        console.log(`   - Schemas: ${schemaCount.rows[0].count}`);
+        
+        res.json({
+            success: true,
+            message: 'Emergency restoration completed successfully',
+            stats: {
+                categories: parseInt(categoryCount.rows[0].count),
+                problems: parseInt(problemCount.rows[0].count),
+                schemas: parseInt(schemaCount.rows[0].count)
+            }
+        });
+        
+    } catch (error) {
+        console.error('💥 Emergency restore failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Emergency restoration failed',
+            details: error.message
+        });
+    }
+});
+
 // Emergency fix route to populate database
 router.post('/emergency-populate', async (req, res) => {
     try {
