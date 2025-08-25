@@ -104,7 +104,6 @@ function PracticePage() {
         
         // Setup problem environment
         await setupProblemEnvironment(id);
-      }
       } else {
         console.error('DEBUG: API response not ok:', response.status, response.statusText);
         console.error('DEBUG: Response data:', data);
