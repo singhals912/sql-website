@@ -2,6 +2,102 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
+// Emergency fix route to populate database
+router.post('/emergency-populate', async (req, res) => {
+    try {
+        console.log('🚀 Emergency database population...');
+        
+        // Drop and recreate tables
+        await pool.query('DROP TABLE IF EXISTS problem_schemas CASCADE');
+        await pool.query('DROP TABLE IF EXISTS problems CASCADE');
+        await pool.query('DROP TABLE IF EXISTS categories CASCADE');
+        
+        // Create tables
+        await pool.query(`
+            CREATE TABLE categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE problems (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                difficulty VARCHAR(20) DEFAULT 'Easy',
+                category_id INTEGER REFERENCES categories(id),
+                slug VARCHAR(255) UNIQUE,
+                numeric_id INTEGER UNIQUE,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                solution_sql TEXT,
+                expected_output JSONB
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE problem_schemas (
+                id SERIAL PRIMARY KEY,
+                problem_id INTEGER REFERENCES problems(id) ON DELETE CASCADE,
+                schema_name VARCHAR(100),
+                setup_sql TEXT,
+                teardown_sql TEXT,
+                sample_data TEXT,
+                expected_output JSONB,
+                solution_sql TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        // Insert categories
+        await pool.query(`INSERT INTO categories (name, slug, description) VALUES 
+            ('SQL Basics', 'sql-basics', 'Fundamental SQL concepts'),
+            ('Data Analysis', 'data-analysis', 'Business analytics queries'),
+            ('Advanced SQL', 'advanced-sql', 'Complex SQL operations')`);
+        
+        // Insert the Adobe problem with proper expected output
+        const result = await pool.query(`
+            INSERT INTO problems (title, description, difficulty, category_id, slug, numeric_id, is_active, solution_sql, expected_output)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
+        `, [
+            'Adobe Creative Cloud Subscription Analytics',
+            'Analyze subscription data for Adobe Creative Cloud to identify top customers by total spending. Join customer and order tables to calculate spending metrics.',
+            'Easy',
+            2, // Data Analysis category
+            'adobe-creative-cloud-subscription-analytics',
+            5,
+            true,
+            'SELECT c.name as customer_name, COUNT(o.order_id) as order_count, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.status = \'completed\' GROUP BY c.customer_id, c.name ORDER BY total_spent DESC;',
+            '[{"customer_name":"John Smith","order_count":"2","total_spent":"389.98"},{"customer_name":"Jane Doe","order_count":"2","total_spent":"349.49"}]'
+        ]);
+        
+        const problemId = result.rows[0].id;
+        
+        // Insert schema for the problem
+        await pool.query(`
+            INSERT INTO problem_schemas (problem_id, schema_name, setup_sql, sample_data, expected_output, solution_sql)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+            problemId,
+            'ecommerce',
+            'CREATE TABLE customers (customer_id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), registration_date DATE); CREATE TABLE orders (order_id SERIAL PRIMARY KEY, customer_id INTEGER REFERENCES customers(customer_id), total_amount DECIMAL(10,2), status VARCHAR(50), order_date DATE);',
+            'INSERT INTO customers (customer_id, name, email, registration_date) VALUES (1, \'John Smith\', \'john@example.com\', \'2024-01-15\'), (2, \'Jane Doe\', \'jane@example.com\', \'2024-02-01\'); INSERT INTO orders (order_id, customer_id, total_amount, status, order_date) VALUES (1, 1, 199.99, \'completed\', \'2024-03-01\'), (2, 1, 189.99, \'completed\', \'2024-03-15\'), (3, 2, 149.99, \'completed\', \'2024-03-02\'), (4, 2, 199.50, \'completed\', \'2024-03-20\');',
+            '[{"customer_name":"John Smith","order_count":"2","total_spent":"389.98"},{"customer_name":"Jane Doe","order_count":"2","total_spent":"349.49"}]',
+            'SELECT c.name as customer_name, COUNT(o.order_id) as order_count, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.customer_id = o.customer_id WHERE o.status = \'completed\' GROUP BY c.customer_id, c.name ORDER BY total_spent DESC;'
+        ]);
+        
+        res.json({ success: true, message: 'Database populated successfully', problemId });
+        
+    } catch (error) {
+        console.error('Population failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get all problems with pagination
 router.get('/', async (req, res) => {
     try {
