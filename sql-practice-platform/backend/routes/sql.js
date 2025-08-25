@@ -144,15 +144,23 @@ router.get('/problems/:id', async (req, res) => {
         }
         
         console.log('DEBUG SQL route: About to send response with problem.title:', problem.title);
+        console.log('DEBUG SQL route: problem keys:', Object.keys(problem));
         
         const response = {
             // Primary structure
             problem: problem,
             schema: transformedSchema,
             schemas: schemaResult.rows,
-            // Direct fields for compatibility
-            ...problem
+            // Explicit fields for compatibility
+            id: problem.id,
+            numeric_id: problem.numeric_id,
+            title: problem.title,
+            description: problem.description,
+            difficulty: problem.difficulty,
+            category_name: problem.category_name
         };
+        
+        console.log('DEBUG SQL route: Response title field:', response.title);
         
         res.json(response);
     } catch (error) {
