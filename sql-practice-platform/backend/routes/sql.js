@@ -146,7 +146,13 @@ router.get('/problems/:id', async (req, res) => {
         res.json({
             problem: problem,
             schema: transformedSchema,
-            schemas: schemaResult.rows
+            schemas: schemaResult.rows,
+            // Legacy compatibility - provide data in multiple formats
+            id: problem.id,
+            numeric_id: problem.numeric_id,
+            title: problem.title,
+            description: problem.description,
+            difficulty: problem.difficulty
         });
     } catch (error) {
         console.error('Error fetching problem:', error);
