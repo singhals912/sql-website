@@ -2,6 +2,181 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
+// POST /api/emergency-fix/populate-from-backup
+router.post('/populate-from-backup', async (req, res) => {
+    try {
+        console.log('🚀 Starting Railway database population from backup data...');
+        
+        // First, clear existing data and recreate tables
+        await pool.query('DROP TABLE IF EXISTS problem_schemas CASCADE');
+        await pool.query('DROP TABLE IF EXISTS problems CASCADE');
+        await pool.query('DROP TABLE IF EXISTS categories CASCADE');
+        
+        // Recreate tables
+        await pool.query(`
+            CREATE TABLE categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE problems (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                difficulty VARCHAR(20) DEFAULT 'Easy',
+                category_id INTEGER REFERENCES categories(id),
+                slug VARCHAR(255) UNIQUE,
+                numeric_id INTEGER UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                solution_sql TEXT,
+                expected_output JSONB
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE problem_schemas (
+                id SERIAL PRIMARY KEY,
+                problem_id INTEGER REFERENCES problems(id) ON DELETE CASCADE,
+                schema_name VARCHAR(100),
+                setup_sql TEXT,
+                teardown_sql TEXT,
+                sample_data TEXT,
+                expected_output JSONB,
+                solution_sql TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        // Insert basic categories
+        const categories = [
+            { name: 'SQL Basics', slug: 'sql-basics', description: 'Fundamental SQL concepts and queries' },
+            { name: 'Data Analysis', slug: 'data-analysis', description: 'Business intelligence and analytics' },
+            { name: 'Advanced SQL', slug: 'advanced-sql', description: 'Complex queries and optimization' }
+        ];
+        
+        for (const cat of categories) {
+            await pool.query(
+                'INSERT INTO categories (name, slug, description) VALUES ($1, $2, $3)',
+                [cat.name, cat.slug, cat.description]
+            );
+        }
+        
+        console.log('✅ Categories populated');
+        
+        // Add sample problems with expected outputs
+        const sampleProblems = [
+            {
+                title: 'Adobe Creative Cloud Subscription Analytics',
+                description: 'Analyze subscription data for Adobe Creative Cloud to identify top customers by total spending.',
+                difficulty: 'Easy',
+                category_id: 2,
+                slug: 'adobe-creative-cloud-subscription-analytics',
+                numeric_id: 5,
+                solution_sql: `SELECT 
+    c.name as customer_name,
+    COUNT(o.order_id) as order_count,
+    SUM(o.total_amount) as total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+GROUP BY c.customer_id, c.name
+ORDER BY total_spent DESC;`,
+                expected_output: JSON.stringify([
+                    { customer_name: "John Smith", order_count: "2", total_spent: "389.98" },
+                    { customer_name: "Jane Doe", order_count: "2", total_spent: "349.49" }
+                ])
+            }
+        ];
+        
+        for (const problem of sampleProblems) {
+            const result = await pool.query(`
+                INSERT INTO problems (title, description, difficulty, category_id, slug, numeric_id, solution_sql, expected_output)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
+            `, [
+                problem.title,
+                problem.description,
+                problem.difficulty,
+                problem.category_id,
+                problem.slug,
+                problem.numeric_id,
+                problem.solution_sql,
+                problem.expected_output
+            ]);
+            
+            const problemId = result.rows[0].id;
+            
+            // Add schema for this problem
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, setup_sql, sample_data, expected_output, solution_sql)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                problemId,
+                'ecommerce',
+                `CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    registration_date DATE
+);
+
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INTEGER REFERENCES customers(customer_id),
+    total_amount DECIMAL(10,2),
+    status VARCHAR(50),
+    order_date DATE
+);`,
+                `INSERT INTO customers (customer_id, name, email, registration_date) VALUES
+(1, 'John Smith', 'john@example.com', '2024-01-15'),
+(2, 'Jane Doe', 'jane@example.com', '2024-02-01');
+
+INSERT INTO orders (order_id, customer_id, total_amount, status, order_date) VALUES
+(1, 1, 199.99, 'completed', '2024-03-01'),
+(2, 1, 189.99, 'completed', '2024-03-15'),
+(3, 2, 149.99, 'completed', '2024-03-02'),
+(4, 2, 199.50, 'completed', '2024-03-20');`,
+                problem.expected_output,
+                problem.solution_sql
+            ]);
+        }
+        
+        console.log('✅ Sample problems populated');
+        
+        // Verify the restoration
+        const categoryCount = await pool.query('SELECT COUNT(*) FROM categories');
+        const problemCount = await pool.query('SELECT COUNT(*) FROM problems');
+        const schemaCount = await pool.query('SELECT COUNT(*) FROM problem_schemas');
+        
+        console.log('📊 Database populated with:');
+        console.log(`   - ${categoryCount.rows[0].count} categories`);
+        console.log(`   - ${problemCount.rows[0].count} problems`);
+        console.log(`   - ${schemaCount.rows[0].count} problem schemas`);
+        
+        res.json({
+            success: true,
+            message: 'Railway database populated successfully',
+            stats: {
+                categories: parseInt(categoryCount.rows[0].count),
+                problems: parseInt(problemCount.rows[0].count),
+                schemas: parseInt(schemaCount.rows[0].count)
+            }
+        });
+        
+    } catch (error) {
+        console.error('💥 Database population failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Database population failed',
+            details: error.message
+        });
+    }
+});
+
 // POST /api/emergency-fix/restore-basic-functionality
 router.post('/restore-basic-functionality', async (req, res) => {
     try {
