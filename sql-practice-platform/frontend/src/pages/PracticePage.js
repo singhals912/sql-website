@@ -68,7 +68,7 @@ function PracticePage() {
   // Define callback functions first (before useEffect that uses them)
   const setupProblemEnvironment = async (id) => {
     try {
-      await fetch(sqlUrl(`problems/${id}/setup`), {
+      await fetch(apiUrl(`problems/${id}/setup`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ function PracticePage() {
 
   const loadProblem = useCallback(async (id) => {
     try {
-      const response = await fetch(sqlUrl(`problems/${id}`));
+      const response = await fetch(apiUrl(`problems/${id}`));
       const data = await response.json();
       
       if (response.ok) {
@@ -229,7 +229,7 @@ function PracticePage() {
         }
       } else {
         // Load all problems (default behavior)
-        const response = await fetch(sqlUrl('problems'));
+        const response = await fetch(apiUrl('problems'));
         const data = await response.json();
         if (response.ok && data.problems) {
           // Sort problems by numeric_id for sequential ordering
