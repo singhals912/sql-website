@@ -404,6 +404,7 @@ router.get('/', async (req, res) => {
 router.get('/:id(\\d+)', async (req, res) => {
     try {
         const idValue = parseInt(req.params.id);
+        console.log('DEBUG: Looking for problem with ID or numeric_id:', idValue);
         
         // Try both ID and numeric_id to handle different frontend calling patterns
         const result = await pool.query(`
@@ -413,6 +414,11 @@ router.get('/:id(\\d+)', async (req, res) => {
             WHERE (p.id = $1 OR p.numeric_id = $1) AND (p.is_active = true OR p.is_active IS NULL)
             LIMIT 1
         `, [idValue]);
+        
+        console.log('DEBUG: Query result rows length:', result.rows.length);
+        if (result.rows.length > 0) {
+            console.log('DEBUG: Found problem:', result.rows[0].id, result.rows[0].numeric_id, result.rows[0].title);
+        }
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Problem not found' });
