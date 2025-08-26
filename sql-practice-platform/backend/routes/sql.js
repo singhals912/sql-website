@@ -339,7 +339,7 @@ router.post('/import-emergency', async (req, res) => {
         }
         
         // Insert schemas with mapped problem IDs
-        for (const schema of exportData.schemas) {
+        for (const schema of exportData.problem_schemas || []) {
             const mappedProblemId = problemMap[schema.problem_id];
             if (mappedProblemId) {
                 await pool.query(`
