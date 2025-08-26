@@ -500,6 +500,16 @@ Write a SQL query that analyzes the customer and order data to find customers wh
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
+      const requestBody = { 
+        query: sqlQuery, 
+        dialect: selectedDialect,
+        problemId: problem?.numeric_id || parseInt(problemId) // Use numeric ID for validation
+      };
+      
+      console.log('📤 Request URL:', sqlUrl('execute'));
+      console.log('📤 Request body:', requestBody);
+      console.log('📤 SQL Query preview:', sqlQuery.substring(0, 100) + '...');
+
       const response = await fetch(sqlUrl('execute'), {
         method: 'POST',
         signal: controller.signal,
@@ -508,19 +518,26 @@ Write a SQL query that analyzes the customer and order data to find customers wh
           'X-Session-ID': ProgressService.sessionId,
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        body: JSON.stringify({ 
-          query: sqlQuery, 
-          dialect: selectedDialect,
-          problemId: problem?.numeric_id || parseInt(problemId) // Use numeric ID for validation
-        })
+        body: JSON.stringify(requestBody)
       });
       
       clearTimeout(timeoutId);
       
-      console.log('DEBUG: Response status:', response.status);
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get the error message from the response
+        try {
+          const errorData = await response.json();
+          console.error('❌ API Error Response:', errorData);
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || errorData.error || 'Unknown error'}`);
+        } catch (parseError) {
+          // If we can't parse the error response, use the status
+          const errorText = await response.text();
+          console.error('❌ API Error Text:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}, text: ${errorText}`);
+        }
       }
       
       const data = await response.json();
