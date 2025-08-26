@@ -334,7 +334,7 @@ router.post('/import-emergency', async (req, res) => {
                 problem.description || 'Problem description', problem.difficulty,
                 categoryMap[problem.category_id] || 1, problem.is_active !== false,
                 problem.numeric_id, problem.created_at || new Date(),
-                problem.solution_sql || '', problem.expected_output || '[]'
+                problem.solution_sql || '', JSON.stringify(problem.expected_output || [])
             ]);
         }
         
@@ -350,7 +350,7 @@ router.post('/import-emergency', async (req, res) => {
                 `, [
                     mappedProblemId, schema.schema_name || 'default',
                     schema.setup_sql || '', schema.teardown_sql || '',
-                    schema.sample_data || '', schema.expected_output || '[]',
+                    schema.sample_data || '', JSON.stringify(schema.expected_output || []),
                     schema.solution_sql || '', schema.created_at || new Date()
                 ]);
             }
