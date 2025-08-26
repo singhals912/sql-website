@@ -69,11 +69,50 @@ router.post('/register', async (req, res) => {
                     
                     console.log('✅ Missing columns added, retrying registration...');
                     
-                    // Now proceed with registration
-                    const userExists = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+                    // Now proceed with registration using the correct ID column
+                    const userExists = await pool.query(`SELECT ${idColumn} FROM users WHERE email = ?`, [email]);
                     if (userExists.rows && userExists.rows.length > 0) {
                         return res.status(400).json({ error: 'User already exists' });
                     }
+                    
+                    // Hash password
+                    console.log('🔒 Hashing password...');
+                    const passwordHash = await bcrypt.hash(password, 10);
+                    
+                    // Insert new user using existing table with added columns
+                    const finalUsername = username || email.split('@')[0];
+                    console.log('📝 Inserting user with modified table structure...');
+                    
+                    await pool.query(
+                        'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                        [finalUsername, email, passwordHash, fullName]
+                    );
+                    
+                    // Get the created user
+                    const result = await pool.query(
+                        `SELECT ${idColumn}, username, email, full_name FROM users WHERE email = ? ORDER BY ${idColumn} DESC LIMIT 1`,
+                        [email]
+                    );
+                    
+                    const user = result.rows[0];
+                    const token = jwt.sign(
+                        { userId: user[idColumn], username: user.username, email: user.email },
+                        JWT_SECRET,
+                        { expiresIn: '7d' }
+                    );
+                    
+                    console.log('🎉 Registration successful with modified existing table');
+                    return res.status(201).json({
+                        success: true,
+                        message: 'Account created successfully!',
+                        token,
+                        user: {
+                            id: user[idColumn],
+                            username: user.username,
+                            email: user.email,
+                            fullName: user.full_name
+                        }
+                    });
                     
                 } catch (alterError) {
                     console.log('❌ Cannot alter table, using new table approach:', alterError.message);
