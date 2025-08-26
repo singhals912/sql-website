@@ -132,6 +132,36 @@ router.get('/debug-tables', async (req, res) => {
     }
 });
 
+// Simple test endpoint
+router.post('/test-db', async (req, res) => {
+    try {
+        console.log('🔍 Testing database operations...');
+        
+        // Test 1: Try to select from users table to see what columns exist
+        try {
+            const test1 = await pool.query('SELECT * FROM users LIMIT 1');
+            console.log('✅ Users table exists with columns:', Object.keys(test1.rows[0] || {}));
+            return res.json({ success: true, message: 'Users table exists', columns: Object.keys(test1.rows[0] || {}) });
+        } catch (selectError) {
+            console.log('❌ Select from users failed:', selectError.message);
+        }
+        
+        // Test 2: Try to list all tables
+        try {
+            const tables = await pool.query("SHOW TABLES");
+            console.log('✅ Available tables:', tables.rows);
+            return res.json({ success: true, message: 'Tables found', tables: tables.rows });
+        } catch (showError) {
+            console.log('❌ SHOW TABLES failed:', showError.message);
+        }
+        
+        return res.status(500).json({ error: 'All database tests failed' });
+    } catch (error) {
+        console.error('❌ Test DB error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Register
 router.post('/register', authRateLimit, validateRegistration, async (req, res) => {
     try {
