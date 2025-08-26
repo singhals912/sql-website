@@ -1102,14 +1102,48 @@ INSERT INTO amazon_prime_subscribers VALUES
 
 **Expected Output:** Regions with subscriber counts (>10 subscribers only), ordered by subscriber count descending.`]);
 
-        // Update both schemas
+        // Clean sample data for proper display
+        const cleanSampleData = `subscriber_id | region | subscription_type | monthly_fee | signup_date | content_hours_watched
+1 | North America | Prime Video | 8.99 | 2024-01-15 | 25
+2 | North America | Prime Video | 8.99 | 2024-01-16 | 30
+3 | North America | Prime Video | 8.99 | 2024-01-17 | 20
+4 | North America | Prime Video | 8.99 | 2024-01-18 | 35
+5 | North America | Prime Video | 8.99 | 2024-01-19 | 28
+6 | North America | Prime Video | 8.99 | 2024-01-20 | 22
+7 | North America | Prime Video | 8.99 | 2024-01-21 | 40
+8 | North America | Prime Video | 8.99 | 2024-01-22 | 15
+9 | North America | Prime Video | 8.99 | 2024-01-23 | 33
+10 | North America | Prime Video | 8.99 | 2024-01-24 | 27
+11 | North America | Prime Video | 8.99 | 2024-01-25 | 31
+12 | North America | Prime Video | 8.99 | 2024-01-26 | 24
+13 | Asia Pacific | Prime Video | 4.99 | 2024-02-01 | 32
+14 | Asia Pacific | Prime Video | 4.99 | 2024-02-02 | 28
+15 | Asia Pacific | Prime Video | 4.99 | 2024-02-03 | 35
+16 | Asia Pacific | Prime Video | 4.99 | 2024-02-04 | 30
+17 | Asia Pacific | Prime Video | 4.99 | 2024-02-05 | 25
+18 | Asia Pacific | Prime Video | 4.99 | 2024-02-06 | 38
+19 | Asia Pacific | Prime Video | 4.99 | 2024-02-07 | 29
+20 | Asia Pacific | Prime Video | 4.99 | 2024-02-08 | 33
+21 | Europe | Prime Video | 5.99 | 2024-03-01 | 18
+22 | Europe | Prime Video | 5.99 | 2024-03-02 | 22
+23 | Europe | Prime Video | 5.99 | 2024-03-03 | 16
+24 | Europe | Prime Video | 5.99 | 2024-03-04 | 20
+25 | Europe | Prime Video | 5.99 | 2024-03-05 | 24
+26 | Europe | Prime Video | 5.99 | 2024-03-06 | 19
+27 | Latin America | Prime Video | 3.99 | 2024-04-01 | 22
+28 | Latin America | Prime Video | 3.99 | 2024-04-02 | 26
+29 | Latin America | Prime Video | 3.99 | 2024-04-03 | 20
+30 | Latin America | Prime Video | 3.99 | 2024-04-04 | 24`;
+
+        // Update both schemas with clean sample data
         await pool.query(`
             UPDATE problem_schemas 
             SET setup_sql = $1, 
                 expected_output = $2,
-                solution_sql = $3
+                solution_sql = $3,
+                sample_data = $4
             WHERE problem_id = 7
-        `, [simpleSetupSql, correctExpectedOutput, correctSolutionSql]);
+        `, [simpleSetupSql, correctExpectedOutput, correctSolutionSql, cleanSampleData]);
 
         console.log('✅ Problem 7 database data fixed successfully');
 
