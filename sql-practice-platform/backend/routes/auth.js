@@ -5,17 +5,18 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 
-console.log('🚀 Loading ADAPTIVE AUTH SYSTEM - v2.0');
+console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM');
 
-// Minimal JWT secret
+// JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
-// Ultra minimal registration - work with existing table structure
+// Registration endpoint
 router.post('/register', async (req, res) => {
     try {
-        console.log('🔵 ADAPTIVE registration attempt for:', req.body.email);
+        console.log('🔵 Registration attempt for:', req.body.email);
         const { username, email, password, fullName } = req.body;
         
+        // Validation
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
         }
@@ -24,145 +25,55 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long' });
         }
         
-        console.log('🔍 Checking what users table looks like...');
-        
-        // First, let's see what the existing users table structure is
+        // Try to inspect existing users table
         try {
+            console.log('🔍 Checking existing users table...');
             const existingUsers = await pool.query('SELECT * FROM users LIMIT 1');
             const columns = existingUsers.rows[0] ? Object.keys(existingUsers.rows[0]) : [];
             console.log('✅ Found users table with columns:', columns);
             
-            // Check if user already exists using whatever ID column is available
-            const idColumn = columns.includes('id') ? 'id' : 
-                            columns.includes('user_id') ? 'user_id' :
-                            columns.includes('ID') ? 'ID' : 
-                            columns[0]; // Use first column as fallback
-                            
-            console.log('🔍 Using ID column:', idColumn);
-            
-            // Try to find existing user
-            let userExists;
-            if (columns.includes('email')) {
-                userExists = await pool.query(`SELECT ${idColumn} FROM users WHERE email = ?`, [email]);
-                console.log('✅ User existence check:', userExists.rows?.length || 0, 'existing users');
-            } else {
-                console.log('❌ No email column found. Incompatible table structure. Using app_users approach...');
-                
-                // Create dedicated app_users table instead of modifying existing incompatible table
-                try {
-                    console.log('🏗️ Creating app_users table as dedicated auth table...');
-                        await pool.query(`
-                            CREATE TABLE app_users (
-                                id SERIAL PRIMARY KEY,
-                                username VARCHAR(50) UNIQUE NOT NULL,
-                                email VARCHAR(255) UNIQUE NOT NULL,
-                                password_hash VARCHAR(255) NOT NULL,
-                                full_name VARCHAR(255),
-                                is_active BOOLEAN DEFAULT true,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        `);
-                        
-                        // Update all subsequent queries to use app_users
-                        const passwordHash = await bcrypt.hash(password, 10);
-                        const finalUsername = username || email.split('@')[0];
-                        
-                        await pool.query(
-                            'INSERT INTO app_users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
-                            [finalUsername, email, passwordHash, fullName]
-                        );
-                        
-                        const result = await pool.query(
-                            'SELECT id, username, email, full_name FROM app_users WHERE email = $1 ORDER BY id DESC LIMIT 1',
-                            [email]
-                        );
-                        
-                        const user = result.rows[0];
-                        const token = jwt.sign(
-                            { userId: user.id, username: user.username, email: user.email },
-                            JWT_SECRET,
-                            { expiresIn: '7d' }
-                        );
-                        
-                        console.log('🎉 Registration successful with app_users table');
-                        return res.status(201).json({
-                            success: true,
-                            message: 'Account created successfully!',
-                            token,
-                            user: {
-                                id: user.id,
-                                username: user.username,
-                                email: user.email,
-                                fullName: user.full_name
-                            }
-                        });
-                        
-                    } catch (newTableError) {
-                        console.log('❌ All table solutions failed');
-                        return res.status(500).json({ 
-                            error: 'Cannot create compatible table structure',
-                            availableColumns: columns,
-                            details: newTableError.message
-                        });
-                    }
-                }
+            // If the table doesn't have email column, it's incompatible - use app_users instead
+            if (!columns.includes('email')) {
+                console.log('❌ Users table missing email column. Creating app_users table...');
+                throw new Error('Incompatible table structure');
             }
             
+            // Users table has email - use it
+            const idColumn = columns.includes('id') ? 'id' : 
+                            columns.includes('user_id') ? 'user_id' :
+                            columns[0];
+            
+            console.log('✅ Using users table with ID column:', idColumn);
+            
+            // Check if user exists
+            const userExists = await pool.query(`SELECT ${idColumn} FROM users WHERE email = $1`, [email]);
             if (userExists.rows && userExists.rows.length > 0) {
-                console.log('❌ User already exists');
                 return res.status(400).json({ error: 'User already exists' });
             }
             
-            // Hash password
-            console.log('🔒 Hashing password...');
+            // Hash password and create user in existing users table
             const passwordHash = await bcrypt.hash(password, 10);
-            
-            // Insert new user - adapt to existing table structure
             const finalUsername = username || email.split('@')[0];
-            console.log('📝 Inserting user with username:', finalUsername);
             
-            if (columns.includes('username') && columns.includes('password_hash')) {
-                console.log('✅ Using standard column structure');
-                await pool.query(
-                    'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
-                    [finalUsername, email, passwordHash, fullName]
-                );
-            } else if (columns.includes('password')) {
-                console.log('✅ Using alternative password column');
-                await pool.query(
-                    'INSERT INTO users (username, email, password, full_name) VALUES (?, ?, ?, ?)',
-                    [finalUsername, email, passwordHash, fullName]
-                );
-            } else {
-                console.log('❌ Cannot determine how to insert user with columns:', columns);
-                return res.status(500).json({ error: 'Cannot adapt to table structure', columns });
-            }
+            await pool.query(
+                'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
+                [finalUsername, email, passwordHash, fullName]
+            );
             
-            console.log('📋 Retrieving created user...');
-            // Get the created user
             const result = await pool.query(
-                `SELECT ${idColumn}, username, email, full_name FROM users WHERE email = ? ORDER BY ${idColumn} DESC LIMIT 1`,
+                `SELECT ${idColumn}, username, email, full_name FROM users WHERE email = $1 ORDER BY ${idColumn} DESC LIMIT 1`,
                 [email]
             );
             
-            if (!result.rows || result.rows.length === 0) {
-                console.log('❌ User created but not found');
-                return res.status(500).json({ error: 'User created but not found' });
-            }
-            
             const user = result.rows[0];
-            console.log('✅ User created successfully:', user);
-            
-            // Create JWT token
-            console.log('🎫 Creating JWT token...');
             const token = jwt.sign(
                 { userId: user[idColumn], username: user.username, email: user.email },
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
             
-            console.log('🎉 Registration successful for:', email);
-            res.status(201).json({
+            console.log('🎉 Registration successful with users table');
+            return res.status(201).json({
                 success: true,
                 message: 'Account created successfully!',
                 token,
@@ -175,66 +86,74 @@ router.post('/register', async (req, res) => {
             });
             
         } catch (tableError) {
-            console.log('❌ No users table exists, creating new one...', tableError.message);
+            console.log('❌ Users table issue:', tableError.message);
+            console.log('🏗️ Creating app_users table as fallback...');
             
-            // Create fresh table with PostgreSQL syntax
-            console.log('🏗️ Creating new users table...');
-            await pool.query(`
-                CREATE TABLE users (
-                    id SERIAL PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    full_name VARCHAR(255),
-                    is_active BOOLEAN DEFAULT true,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-            console.log('✅ Users table created successfully');
-            
-            // Hash password
-            const passwordHash = await bcrypt.hash(password, 10);
-            const finalUsername = username || email.split('@')[0];
-            
-            // Insert user
-            console.log('👤 Inserting first user...');
-            await pool.query(
-                'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
-                [finalUsername, email, passwordHash, fullName]
-            );
-            
-            // Get the created user
-            const result = await pool.query(
-                'SELECT id, username, email, full_name FROM users WHERE email = $1 ORDER BY id DESC LIMIT 1',
-                [email]
-            );
-            
-            const user = result.rows[0];
-            console.log('✅ First user created:', user);
-            
-            // Create JWT token
-            const token = jwt.sign(
-                { userId: user.id, username: user.username, email: user.email },
-                JWT_SECRET,
-                { expiresIn: '7d' }
-            );
-            
-            console.log('🎉 Registration successful with new table for:', email);
-            res.status(201).json({
-                success: true,
-                message: 'Account created successfully!',
-                token,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    fullName: user.full_name
+            // Create app_users table
+            try {
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS app_users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        full_name VARCHAR(255),
+                        is_active BOOLEAN DEFAULT true,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                
+                // Check if user exists in app_users
+                const appUserExists = await pool.query('SELECT id FROM app_users WHERE email = $1', [email]);
+                if (appUserExists.rows && appUserExists.rows.length > 0) {
+                    return res.status(400).json({ error: 'User already exists' });
                 }
-            });
+                
+                // Hash password and create user in app_users
+                const passwordHash = await bcrypt.hash(password, 10);
+                const finalUsername = username || email.split('@')[0];
+                
+                await pool.query(
+                    'INSERT INTO app_users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
+                    [finalUsername, email, passwordHash, fullName]
+                );
+                
+                const result = await pool.query(
+                    'SELECT id, username, email, full_name FROM app_users WHERE email = $1 ORDER BY id DESC LIMIT 1',
+                    [email]
+                );
+                
+                const user = result.rows[0];
+                const token = jwt.sign(
+                    { userId: user.id, username: user.username, email: user.email },
+                    JWT_SECRET,
+                    { expiresIn: '7d' }
+                );
+                
+                console.log('🎉 Registration successful with app_users table');
+                return res.status(201).json({
+                    success: true,
+                    message: 'Account created successfully!',
+                    token,
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        email: user.email,
+                        fullName: user.full_name
+                    }
+                });
+                
+            } catch (appUsersError) {
+                console.error('❌ Failed to create app_users table:', appUsersError);
+                return res.status(500).json({ 
+                    error: 'Failed to create user account',
+                    debug: appUsersError.message
+                });
+            }
         }
+        
     } catch (error) {
-        console.error('💥 ADAPTIVE registration error:', error);
-        console.error('💥 Error stack:', error.stack);
+        console.error('💥 Registration error:', error);
         res.status(500).json({ 
             error: 'Registration failed',
             debug: error.message,
@@ -243,7 +162,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Basic login
+// Login endpoint
 router.post('/login', async (req, res) => {
     try {
         console.log('🔑 Login attempt for:', req.body.email);
@@ -253,28 +172,20 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
         
-        // Get user with flexible table detection (users or app_users)
-        let result;
+        // Try both tables: users and app_users
+        let result = null;
+        let tableName = '';
+        
         try {
-            // First try users table
-            result = await pool.query(
-                'SELECT * FROM users WHERE email = $1 AND is_active = true',
-                [email]
-            );
-        } catch (selectError) {
-            console.log('Trying users table without is_active filter...');
-            try {
-                result = await pool.query(
-                    'SELECT * FROM users WHERE email = $1',
-                    [email]
-                );
-            } catch (usersError) {
-                console.log('Users table failed, trying app_users table...');
-                result = await pool.query(
-                    'SELECT * FROM app_users WHERE email = $1',
-                    [email]
-                );
+            result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+            tableName = 'users';
+            if (!result.rows || result.rows.length === 0) {
+                result = await pool.query('SELECT * FROM app_users WHERE email = $1', [email]);
+                tableName = 'app_users';
             }
+        } catch (selectError) {
+            result = await pool.query('SELECT * FROM app_users WHERE email = $1', [email]);
+            tableName = 'app_users';
         }
         
         if (!result.rows || result.rows.length === 0) {
@@ -282,18 +193,11 @@ router.post('/login', async (req, res) => {
         }
         
         const user = result.rows[0];
-        const columns = Object.keys(user);
-        const idColumn = columns.includes('id') ? 'id' : 
-                        columns.includes('user_id') ? 'user_id' :
-                        columns.includes('ID') ? 'ID' : 
-                        columns[0];
-        const passwordColumn = columns.includes('password_hash') ? 'password_hash' : 'password';
-        
-        console.log('Using columns - ID:', idColumn, 'Password:', passwordColumn);
+        const idColumn = Object.keys(user).includes('id') ? 'id' : 'user_id';
+        const passwordColumn = Object.keys(user).includes('password_hash') ? 'password_hash' : 'password';
         
         // Check password
         const isValidPassword = await bcrypt.compare(password, user[passwordColumn]);
-        
         if (!isValidPassword) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
@@ -305,7 +209,7 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
         
-        console.log('✅ Login successful for:', email);
+        console.log('✅ Login successful for:', email, 'from table:', tableName);
         res.json({
             token,
             user: {
@@ -315,13 +219,14 @@ router.post('/login', async (req, res) => {
                 fullName: user.full_name
             }
         });
+        
     } catch (error) {
         console.error('❌ Login error:', error);
         res.status(500).json({ error: 'Failed to login' });
     }
 });
 
-// Validate token
+// Validate token endpoint
 router.get('/validate', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -332,12 +237,14 @@ router.get('/validate', async (req, res) => {
         
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        // Get user data with flexible table and column detection
-        let result;
+        // Try both tables
+        let result = null;
         try {
-            result = await pool.query('SELECT * FROM users WHERE id = $1 OR user_id = $1 OR ID = $1', [decoded.userId]);
-        } catch (usersError) {
-            console.log('Users table failed, trying app_users for validation...');
+            result = await pool.query('SELECT * FROM users WHERE id = $1 OR user_id = $1', [decoded.userId]);
+            if (!result.rows || result.rows.length === 0) {
+                result = await pool.query('SELECT * FROM app_users WHERE id = $1', [decoded.userId]);
+            }
+        } catch (selectError) {
             result = await pool.query('SELECT * FROM app_users WHERE id = $1', [decoded.userId]);
         }
         
@@ -346,8 +253,7 @@ router.get('/validate', async (req, res) => {
         }
         
         const user = result.rows[0];
-        const columns = Object.keys(user);
-        const idColumn = columns.includes('id') ? 'id' : columns.includes('user_id') ? 'user_id' : columns[0];
+        const idColumn = Object.keys(user).includes('id') ? 'id' : 'user_id';
         
         res.json({
             valid: true,
@@ -358,11 +264,12 @@ router.get('/validate', async (req, res) => {
                 fullName: user.full_name
             }
         });
+        
     } catch (error) {
         console.error('❌ Token validation error:', error);
         res.status(401).json({ error: 'Invalid token' });
     }
 });
 
-console.log('✅ ADAPTIVE AUTH SYSTEM loaded successfully');
+console.log('✅ FIXED ADAPTIVE AUTH SYSTEM loaded successfully');
 module.exports = router;
