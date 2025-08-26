@@ -411,4 +411,63 @@ router.post('/import-emergency', async (req, res) => {
     }
 });
 
+// EMERGENCY: Recreate database schema
+router.post('/create-tables', async (req, res) => {
+    try {
+        console.log('🏗️ Creating database tables...');
+        
+        // Create categories table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) UNIQUE NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Create problems table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS problems (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(500) NOT NULL,
+                slug VARCHAR(500) UNIQUE NOT NULL,
+                description TEXT,
+                difficulty VARCHAR(50),
+                category_id INTEGER REFERENCES categories(id),
+                is_active BOOLEAN DEFAULT true,
+                numeric_id INTEGER,
+                solution_sql TEXT,
+                expected_output TEXT,
+                tags TEXT[],
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Create problem_schemas table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS problem_schemas (
+                id SERIAL PRIMARY KEY,
+                problem_id INTEGER REFERENCES problems(id),
+                schema_name VARCHAR(255),
+                setup_sql TEXT,
+                teardown_sql TEXT,
+                sample_data TEXT,
+                expected_output TEXT,
+                solution_sql TEXT,
+                sql_dialect VARCHAR(50) DEFAULT 'postgresql',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        console.log('✅ Database tables created successfully');
+        res.json({ success: true, message: 'Database tables created' });
+        
+    } catch (error) {
+        console.error('💥 Failed to create tables:', error);
+        res.status(500).json({ error: 'Failed to create tables', details: error.message });
+    }
+});
+
 module.exports = router;
