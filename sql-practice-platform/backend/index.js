@@ -78,6 +78,34 @@ try {
   console.error('❌ Learning-paths route failed:', e.message);
 }
 
+try {
+  app.use('/api/bookmarks', require('./routes/bookmarks'));
+  console.log('✅ Bookmarks route loaded');
+} catch (e) {
+  console.error('❌ Bookmarks route failed:', e.message);
+}
+
+try {
+  app.use('/api/progress', require('./routes/progress'));
+  console.log('✅ Progress route loaded');
+} catch (e) {
+  console.error('❌ Progress route failed:', e.message);
+}
+
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✅ Auth route loaded');
+} catch (e) {
+  console.error('❌ Auth route failed:', e.message);
+}
+
+try {
+  app.use('/api/recommendations', require('./routes/recommendations'));
+  console.log('✅ Recommendations route loaded');
+} catch (e) {
+  console.error('❌ Recommendations route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
