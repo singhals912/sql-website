@@ -67,7 +67,7 @@ function ProblemsPage() {
       if (selectedCompany !== 'all') params.append('company', selectedCompany);
       
       // Use configured API URL - SQL endpoint has the data
-      const response = await fetch(sqlUrl(`sql/problems?${params}`));
+      const response = await fetch(sqlUrl(`problems?${params}`));
       
       if (!response.ok) {
         throw new Error('Railway API failed - using fallback');
@@ -156,7 +156,7 @@ function ProblemsPage() {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await fetch(sqlUrl('sql/companies'));
+        const response = await fetch(sqlUrl('companies'));
         const data = await response.json();
         if (response.ok) {
           setCompanies([
