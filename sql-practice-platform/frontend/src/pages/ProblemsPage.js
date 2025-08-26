@@ -67,13 +67,18 @@ function ProblemsPage() {
       if (selectedCompany !== 'all') params.append('company', selectedCompany);
       
       // Use configured API URL - SQL endpoint has the data
-      const response = await fetch(sqlUrl(`problems?${params}`));
+      const apiEndpoint = sqlUrl(`problems?${params}`);
+      console.log('🔍 Frontend fetching from:', apiEndpoint);
+      const response = await fetch(apiEndpoint);
       
+      console.log('📡 API Response status:', response.status, response.statusText);
       if (!response.ok) {
+        console.error('❌ API request failed:', response.status, response.statusText);
         throw new Error('Railway API failed - using fallback');
       }
       
       const data = await response.json();
+      console.log('📊 API Data received:', data.problems ? `${data.problems.length} problems` : 'No problems field');
       
       if (data && data.problems && data.problems.length > 0) {
         // Format problems from Railway backend
@@ -101,13 +106,15 @@ function ProblemsPage() {
           };
         });
         
+        console.log('✅ Successfully formatted', formattedProblems.length, 'problems');
         setProblems(formattedProblems);
         setError(null);
       } else {
+        console.error('⚠️ No problems found in API response');
         throw new Error('No problems returned from API');
       }
     } catch (err) {
-      console.error('Failed to fetch from Railway, using fallback data:', err);
+      console.error('💥 Failed to fetch from Railway, using fallback data:', err);
       
       // Fallback to mock data when Railway API fails
       const mockProblems = [
