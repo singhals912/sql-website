@@ -194,12 +194,37 @@ router.get('/overview', async (req, res) => {
 router.get('/detailed', async (req, res) => {
   try {
     const sessionId = req.headers['x-session-id'];
+    console.log('🔍 /detailed endpoint called with sessionId:', sessionId);
     
     if (!sessionId) {
+      console.log('🔍 No sessionId provided, returning empty results');
       return res.json({
         success: true,
         problems: []
       });
+    }
+    
+    try {
+      // First, ensure the table exists with auto-creation fallback
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_problem_progress (
+          id SERIAL PRIMARY KEY,
+          session_id VARCHAR(255) NOT NULL,
+          problem_id INTEGER,
+          problem_numeric_id INTEGER,
+          status VARCHAR(50) DEFAULT 'attempted',
+          total_attempts INTEGER DEFAULT 0,
+          correct_attempts INTEGER DEFAULT 0,
+          best_execution_time_ms INTEGER,
+          first_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          last_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP,
+          UNIQUE(session_id, problem_numeric_id)
+        )
+      `);
+      console.log('✅ Progress table verified/created');
+    } catch (tableError) {
+      console.log('⚠️ Table creation failed but continuing:', tableError.message);
     }
     
     // Get all progress records with problem details for the new ProgressPage format
@@ -222,13 +247,24 @@ router.get('/detailed', async (req, res) => {
       ORDER BY upp.last_attempt_at DESC NULLS LAST
     `, [sessionId]);
     
+    console.log(`🔍 Found ${progressResult.rows.length} progress records for session ${sessionId}`);
+    
     res.json({
       success: true,
       problems: progressResult.rows
     });
   } catch (error) {
-    console.error('Error fetching detailed progress:', error);
-    res.status(500).json({ error: 'Failed to fetch detailed progress' });
+    console.error('❌ Error fetching detailed progress:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      sessionId
+    });
+    res.status(500).json({ 
+      error: 'Failed to fetch detailed progress',
+      details: error.message,
+      sessionId: sessionId
+    });
   }
 });
 
@@ -409,6 +445,21 @@ router.post('/track', async (req, res) => {
     console.error('Error tracking progress:', error);
     res.status(500).json({ error: 'Failed to track progress' });
   }
+});
+
+// Debug endpoint to test deployment
+router.get('/debug/deployment', async (req, res) => {
+  res.json({
+    message: 'Latest deployment active',
+    timestamp: new Date().toISOString(),
+    version: '2024-08-26-v2',
+    endpoints: [
+      '/api/progress/overview',
+      '/api/progress/detailed', 
+      '/api/progress/stats',
+      '/api/progress/track'
+    ]
+  });
 });
 
 module.exports = router;
