@@ -93,17 +93,10 @@ try {
 }
 
 try {
-  app.use('/api/auth', require('./routes/auth-minimal'));
-  console.log('✅ Auth route loaded (minimal adaptive version)');
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✅ Auth route loaded');
 } catch (e) {
-  console.error('❌ Minimal auth route failed:', e.message);
-  // Fallback to other versions
-  try {
-    app.use('/api/auth', require('./routes/auth-simple'));
-    console.log('✅ Auth route loaded (simple fallback)');
-  } catch (e2) {
-    console.error('❌ All auth routes failed:', e2.message);
-  }
+  console.error('❌ Auth route failed:', e.message);
 }
 
 try {
