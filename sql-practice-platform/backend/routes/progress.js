@@ -132,11 +132,15 @@ router.get('/overview', async (req, res) => {
     `, [sessionId]);
     
     const recentResult = await pool.query(`
-      SELECT COALESCE(p.title, 'Problem ' || upp.problem_numeric_id) as title, 
+      SELECT CASE 
+               WHEN p.title IS NOT NULL THEN p.title
+               ELSE 'Problem ' || COALESCE(upp.problem_numeric_id, upp.problem_id)
+             END as title, 
              COALESCE(p.numeric_id, upp.problem_numeric_id) as numeric_id, 
-             upp.status, upp.last_attempt_at, upp.total_attempts
+             upp.status, upp.last_attempt_at, upp.total_attempts,
+             p.title as raw_title
       FROM user_problem_progress upp
-      LEFT JOIN problems p ON (upp.problem_id = p.id OR upp.problem_numeric_id = p.numeric_id)
+      LEFT JOIN problems p ON (upp.problem_numeric_id = p.numeric_id)
       WHERE upp.session_id = $1
       ORDER BY upp.last_attempt_at DESC
       LIMIT 10
@@ -232,7 +236,10 @@ router.get('/detailed', async (req, res) => {
     const progressResult = await pool.query(`
       SELECT 
         COALESCE(p.numeric_id, upp.problem_numeric_id) as problem_numeric_id,
-        COALESCE(p.title, 'Problem ' || upp.problem_numeric_id) as title,
+        CASE 
+          WHEN p.title IS NOT NULL THEN p.title
+          ELSE 'Problem ' || COALESCE(upp.problem_numeric_id, upp.problem_id)
+        END as title,
         COALESCE(p.difficulty, 'unknown') as difficulty,
         COALESCE(p.id, upp.problem_id) as problem_id,
         upp.status,
@@ -240,14 +247,17 @@ router.get('/detailed', async (req, res) => {
         upp.correct_attempts,
         upp.best_execution_time_ms,
         upp.last_attempt_at,
-        upp.first_attempt_at
+        upp.first_attempt_at,
+        p.title as raw_title,
+        p.numeric_id as raw_numeric_id
       FROM user_problem_progress upp
-      LEFT JOIN problems p ON (upp.problem_id = p.id OR upp.problem_numeric_id = p.numeric_id)
+      LEFT JOIN problems p ON (upp.problem_numeric_id = p.numeric_id)
       WHERE upp.session_id = $1
       ORDER BY upp.last_attempt_at DESC NULLS LAST
     `, [sessionId]);
     
     console.log(`🔍 Found ${progressResult.rows.length} progress records for session ${sessionId}`);
+    console.log('🔍 Progress result sample:', JSON.stringify(progressResult.rows.slice(0, 2), null, 2));
     
     res.json({
       success: true,
