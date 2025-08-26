@@ -5,10 +5,19 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 
-console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM');
+console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM - v2.1 WITH FORGOT PASSWORD');
 
 // JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+
+// Test endpoint to verify deployment
+router.get('/test-deployment', (req, res) => {
+    res.json({ 
+        version: 'v2.1-with-forgot-password',
+        timestamp: new Date().toISOString(),
+        forgotPasswordEndpoint: 'Available at POST /api/auth/forgot-password'
+    });
+});
 
 // Registration endpoint with email verification
 router.post('/register', async (req, res) => {
