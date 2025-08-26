@@ -326,17 +326,14 @@ router.post('/import-emergency', async (req, res) => {
             await pool.query(`
                 INSERT INTO problems (
                     id, title, slug, description, difficulty, 
-                    category_id, is_premium, is_active, numeric_id,
-                    tags, hints, created_at, total_submissions, 
-                    total_accepted, acceptance_rate, solution_sql, expected_output
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                    category_id, is_active, numeric_id, created_at,
+                    solution_sql, expected_output
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             `, [
                 newId, problem.title, problem.slug, 
                 problem.description || 'Problem description', problem.difficulty,
-                categoryMap[problem.category_id] || 1, problem.is_premium || false, problem.is_active !== false,
-                problem.numeric_id, JSON.stringify(problem.tags || []), JSON.stringify(problem.hints || []),
-                problem.created_at || new Date(), problem.total_submissions || 0,
-                problem.total_accepted || 0, problem.acceptance_rate || '0.00',
+                categoryMap[problem.category_id] || 1, problem.is_active !== false,
+                problem.numeric_id, problem.created_at || new Date(),
                 problem.solution_sql || '', problem.expected_output || '[]'
             ]);
         }
