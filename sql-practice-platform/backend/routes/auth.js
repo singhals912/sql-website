@@ -73,6 +73,27 @@ const validateLogin = (req, res, next) => {
     next();
 };
 
+// Test registration endpoint (minimal)
+router.post('/test-register', async (req, res) => {
+    try {
+        console.log('Test register called with:', req.body);
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password required' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Test registration successful',
+            data: { email, hasPassword: !!password }
+        });
+    } catch (error) {
+        console.error('Test registration error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Register
 router.post('/register', authRateLimit, validateRegistration, async (req, res) => {
     try {
