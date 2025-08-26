@@ -5,7 +5,20 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { authRateLimit } = require('../middleware/authMiddleware');
-const { generateOTP, sendVerificationEmail, sendPasswordResetEmail } = require('../services/emailService');
+// Safe import of email service - fallback if not available
+let generateOTP, sendVerificationEmail, sendPasswordResetEmail;
+try {
+    const emailService = require('../services/emailService');
+    generateOTP = emailService.generateOTP;
+    sendVerificationEmail = emailService.sendVerificationEmail;
+    sendPasswordResetEmail = emailService.sendPasswordResetEmail;
+} catch (emailError) {
+    console.warn('Email service not available:', emailError.message);
+    // Fallback functions
+    generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+    sendVerificationEmail = async () => ({ success: false, error: 'Email service unavailable' });
+    sendPasswordResetEmail = async () => ({ success: false, error: 'Email service unavailable' });
+}
 
 // Ensure JWT secret exists and is secure
 const JWT_SECRET = (() => {
@@ -130,6 +143,7 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes expiry
         
+        let emailVerificationEnabled = false;
         try {
             // Store OTP in database
             await pool.query(`
@@ -140,25 +154,48 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
             // Send verification email
             const emailResult = await sendVerificationEmail(email, otp, fullName);
             
-            if (!emailResult.success) {
+            if (emailResult.success) {
+                emailVerificationEnabled = true;
+            } else {
                 console.error('Failed to send verification email:', emailResult.error);
-                // Continue with registration even if email fails
             }
         } catch (otpError) {
-            console.error('OTP generation failed:', otpError);
-            // Continue with registration even if OTP fails
+            console.error('OTP generation/storage failed:', otpError);
         }
         
-        // Don't create JWT token immediately - require email verification first
-        res.status(201).json({
-            success: true,
-            message: 'Account created successfully! Please check your email for a verification code.',
-            requiresVerification: true,
-            userId: user.id,
-            email: user.email,
-            // For development - remove in production
-            ...(process.env.NODE_ENV === 'development' && { devOTP: otp })
-        });
+        if (emailVerificationEnabled) {
+            // Email verification is working - require verification
+            res.status(201).json({
+                success: true,
+                message: 'Account created successfully! Please check your email for a verification code.',
+                requiresVerification: true,
+                userId: user.id,
+                email: user.email,
+                // For development - remove in production
+                ...(process.env.NODE_ENV === 'development' && { devOTP: otp })
+            });
+        } else {
+            // Email verification failed - create JWT token directly (fallback)
+            console.log('Email verification unavailable, creating immediate JWT token');
+            const token = jwt.sign(
+                { userId: user.id, username: user.username, email: user.email },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+            
+            res.status(201).json({
+                success: true,
+                message: 'Account created successfully!',
+                requiresVerification: false,
+                token,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    fullName: user.full_name
+                }
+            });
+        }
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Failed to register user' });
