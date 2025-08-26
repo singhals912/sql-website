@@ -44,17 +44,31 @@ router.get('/', async (req, res) => {
         } catch (dbError) {
             console.log('⚠️ Learning paths tables not found, using fallback data');
             
-            // Fallback: Create learning paths based on existing categories
+            // Fallback: Create learning paths based on CORE SQL categories only (6 paths, not 12)
             try {
+                const coreCategories = ['basic-queries', 'joins', 'aggregation', 'subqueries', 'window-functions', 'advanced-topics'];
+                
                 const categoriesResult = await pool.query(`
                     SELECT 
                         c.*, 
                         COUNT(p.id) as problem_count
                     FROM categories c
                     LEFT JOIN problems p ON c.id = p.category_id AND p.is_active = true
+                    WHERE c.slug = ANY($1)
                     GROUP BY c.id
-                    ORDER BY c.id
-                `);
+                    ORDER BY 
+                        CASE c.slug
+                            WHEN 'basic-queries' THEN 1
+                            WHEN 'joins' THEN 2
+                            WHEN 'aggregation' THEN 3
+                            WHEN 'subqueries' THEN 4
+                            WHEN 'window-functions' THEN 5
+                            WHEN 'advanced-topics' THEN 6
+                            ELSE 7
+                        END
+                `, [coreCategories]);
+                
+                console.log(`📚 Found ${categoriesResult.rows.length} core learning paths`);
                 
                 learningPaths = categoriesResult.rows.map((category, index) => {
                     const difficultyMap = {
@@ -97,64 +111,121 @@ router.get('/', async (req, res) => {
             } catch (fallbackError) {
                 console.log('⚠️ Categories table also not found, using hardcoded fallback');
                 
-                // Ultimate fallback: Hardcoded learning paths
+                // Ultimate fallback: 6 core SQL learning paths (matching local setup)
                 learningPaths = [
                     {
                         id: 1,
-                        name: 'SQL Fundamentals',
-                        title: 'SQL Fundamentals',
-                        description: 'Master the basics of SQL querying and data manipulation',
-                        slug: 'sql-fundamentals',
+                        name: 'Basic Queries',
+                        title: 'Basic Queries',
+                        description: 'Master fundamental SQL operations and data retrieval',
+                        slug: 'basic-queries',
                         level: 'Beginner',
                         difficulty_level: 'Beginner',
-                        duration: '4 hours',
-                        estimated_hours: 4,
-                        estimatedHours: 4,
+                        duration: '3 hours',
+                        estimated_hours: 3,
+                        estimatedHours: 3,
                         skills: ['SELECT statements', 'WHERE clauses', 'Basic functions'],
                         skills_learned: ['SELECT statements', 'WHERE clauses', 'Basic functions'],
                         prerequisites: [],
-                        problemCount: 15,
-                        total_steps: 15,
+                        problemCount: 12,
+                        total_steps: 12,
                         avgTimePerProblem: 30,
                         order: 0
                     },
                     {
                         id: 2,
-                        name: 'Data Analysis',
-                        title: 'Data Analysis',
-                        description: 'Learn to analyze and aggregate data using advanced SQL techniques',
-                        slug: 'data-analysis',
-                        level: 'Intermediate',
-                        difficulty_level: 'Intermediate',
-                        duration: '6 hours',
-                        estimated_hours: 6,
-                        estimatedHours: 6,
-                        skills: ['GROUP BY', 'Aggregation', 'JOIN operations'],
-                        skills_learned: ['GROUP BY', 'Aggregation', 'JOIN operations'],
+                        name: 'Joins',
+                        title: 'Joins',
+                        description: 'Learn to combine data from multiple tables effectively',
+                        slug: 'joins',
+                        level: 'Beginner',
+                        difficulty_level: 'Beginner',
+                        duration: '4 hours',
+                        estimated_hours: 4,
+                        estimatedHours: 4,
+                        skills: ['INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN'],
+                        skills_learned: ['INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN'],
                         prerequisites: ['Basic SQL Knowledge'],
-                        problemCount: 25,
-                        total_steps: 25,
+                        problemCount: 15,
+                        total_steps: 15,
                         avgTimePerProblem: 30,
                         order: 1
                     },
                     {
                         id: 3,
-                        name: 'Advanced Analytics',
-                        title: 'Advanced Analytics',
-                        description: 'Master complex queries, window functions, and advanced analytics',
-                        slug: 'advanced-analytics',
+                        name: 'Aggregation',
+                        title: 'Aggregation',
+                        description: 'Master data summarization with GROUP BY and aggregate functions',
+                        slug: 'aggregation',
+                        level: 'Intermediate',
+                        difficulty_level: 'Intermediate',
+                        duration: '5 hours',
+                        estimated_hours: 5,
+                        estimatedHours: 5,
+                        skills: ['GROUP BY', 'HAVING', 'COUNT', 'SUM', 'AVG'],
+                        skills_learned: ['GROUP BY', 'HAVING', 'COUNT', 'SUM', 'AVG'],
+                        prerequisites: ['Basic SQL Knowledge'],
+                        problemCount: 18,
+                        total_steps: 18,
+                        avgTimePerProblem: 30,
+                        order: 2
+                    },
+                    {
+                        id: 4,
+                        name: 'Subqueries',
+                        title: 'Subqueries',
+                        description: 'Build complex nested queries for advanced data analysis',
+                        slug: 'subqueries',
+                        level: 'Intermediate',
+                        difficulty_level: 'Intermediate',
+                        duration: '6 hours',
+                        estimated_hours: 6,
+                        estimatedHours: 6,
+                        skills: ['Nested queries', 'EXISTS', 'IN clauses', 'Correlated subqueries'],
+                        skills_learned: ['Nested queries', 'EXISTS', 'IN clauses', 'Correlated subqueries'],
+                        prerequisites: ['Joins', 'Aggregation'],
+                        problemCount: 12,
+                        total_steps: 12,
+                        avgTimePerProblem: 30,
+                        order: 3
+                    },
+                    {
+                        id: 5,
+                        name: 'Window Functions',
+                        title: 'Window Functions',
+                        description: 'Advanced analytics with OVER, PARTITION BY, and ranking functions',
+                        slug: 'window-functions',
+                        level: 'Advanced',
+                        difficulty_level: 'Advanced',
+                        duration: '7 hours',
+                        estimated_hours: 7,
+                        estimatedHours: 7,
+                        skills: ['OVER clause', 'PARTITION BY', 'ROW_NUMBER', 'RANK', 'LAG/LEAD'],
+                        skills_learned: ['OVER clause', 'PARTITION BY', 'ROW_NUMBER', 'RANK', 'LAG/LEAD'],
+                        prerequisites: ['Aggregation', 'Subqueries'],
+                        problemCount: 8,
+                        total_steps: 8,
+                        avgTimePerProblem: 30,
+                        order: 4
+                    },
+                    {
+                        id: 6,
+                        name: 'Advanced Topics',
+                        title: 'Advanced Topics',
+                        description: 'Master CTEs, recursive queries, and advanced SQL techniques',
+                        slug: 'advanced-topics',
                         level: 'Advanced',
                         difficulty_level: 'Advanced',
                         duration: '8 hours',
                         estimated_hours: 8,
                         estimatedHours: 8,
-                        skills: ['Window Functions', 'CTEs', 'Complex Subqueries'],
-                        skills_learned: ['Window Functions', 'CTEs', 'Complex Subqueries'],
-                        prerequisites: ['Intermediate SQL', 'Data Analysis'],
-                        problemCount: 30,
-                        total_steps: 30,
+                        skills: ['Common Table Expressions', 'Recursive queries', 'Advanced optimization'],
+                        skills_learned: ['Common Table Expressions', 'Recursive queries', 'Advanced optimization'],
+                        prerequisites: ['Window Functions', 'Subqueries'],
+                        problemCount: 5,
+                        total_steps: 5,
                         avgTimePerProblem: 30,
-                        order: 2
+                        order: 5
                     }
                 ];
             }

@@ -978,4 +978,93 @@ router.post('/execute', async (req, res) => {
     }
 });
 
+// Fix Problem 7 database data directly
+router.post('/fix-problem-7', async (req, res) => {
+    try {
+        console.log('🔧 Fixing Problem 7 database data to match problem statement...');
+        
+        // Update the problem schema with correct setup_sql and expected_output
+        const correctSetupSql = `CREATE TABLE amazon_prime_subscribers (
+    subscriber_id INTEGER,
+    region VARCHAR(50),
+    subscription_type VARCHAR(30),
+    monthly_fee DECIMAL(6,2),
+    signup_date DATE,
+    content_hours_watched INTEGER
+);
+
+-- North America: 1.25M subscribers (should appear in results)
+INSERT INTO amazon_prime_subscribers 
+SELECT i as subscriber_id,
+       'North America' as region,
+       'Prime Video' as subscription_type,
+       8.99 as monthly_fee,
+       CURRENT_DATE - INTERVAL '30 days' as signup_date,
+       25 as content_hours_watched
+FROM generate_series(1, 1250000) i;
+
+-- Asia Pacific: 1.1M subscribers (should appear in results)  
+INSERT INTO amazon_prime_subscribers 
+SELECT i as subscriber_id,
+       'Asia Pacific' as region,
+       'Prime Video' as subscription_type,
+       4.99 as monthly_fee,
+       CURRENT_DATE - INTERVAL '60 days' as signup_date,
+       32 as content_hours_watched
+FROM generate_series(1250001, 2350000) i;
+
+-- Europe: 750K subscribers (below 1M threshold)
+INSERT INTO amazon_prime_subscribers 
+SELECT i as subscriber_id,
+       'Europe' as region,
+       'Prime Video' as subscription_type,
+       5.99 as monthly_fee,
+       CURRENT_DATE - INTERVAL '45 days' as signup_date,
+       18 as content_hours_watched
+FROM generate_series(2350001, 3100000) i;
+
+-- Latin America: 500K subscribers (below 1M threshold)
+INSERT INTO amazon_prime_subscribers 
+SELECT i as subscriber_id,
+       'Latin America' as region,
+       'Prime Video' as subscription_type,
+       3.99 as monthly_fee,
+       CURRENT_DATE - INTERVAL '20 days' as signup_date,
+       22 as content_hours_watched
+FROM generate_series(3100001, 3600000) i;`;
+
+        const correctExpectedOutput = JSON.stringify([
+            {"region": "North America", "total_subscribers": "1250000"},
+            {"region": "Asia Pacific", "total_subscribers": "1100000"}
+        ]);
+
+        const correctSolutionSql = `SELECT region, COUNT(*) as total_subscribers 
+FROM amazon_prime_subscribers 
+GROUP BY region 
+HAVING COUNT(*) > 1000000
+ORDER BY total_subscribers DESC;`;
+
+        // Update the PostgreSQL schema for Problem 7
+        await pool.query(`
+            UPDATE problem_schemas 
+            SET setup_sql = $1, 
+                expected_output = $2,
+                solution_sql = $3
+            WHERE problem_id = 7 AND sql_dialect = 'postgresql'
+        `, [correctSetupSql, correctExpectedOutput, correctSolutionSql]);
+
+        console.log('✅ Problem 7 database data fixed successfully');
+
+        res.json({
+            success: true,
+            message: 'Problem 7 database data updated to match problem statement',
+            expectedOutput: correctExpectedOutput,
+            solutionSql: correctSolutionSql
+        });
+    } catch (error) {
+        console.error('❌ Failed to fix Problem 7:', error);
+        res.status(500).json({ error: 'Failed to fix Problem 7 database data' });
+    }
+});
+
 module.exports = router;
