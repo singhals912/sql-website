@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { bookmarksUrl } from '../config/environment';
 
 const BookmarkStats = ({ className = '' }) => {
   const [stats, setStats] = useState(null);
@@ -24,10 +25,10 @@ const BookmarkStats = ({ className = '' }) => {
       const sessionId = getSessionId();
       
       const [statsResponse, collectionResponse] = await Promise.all([
-        fetch('http://localhost:5001/api/bookmarks/stats', {
+        fetch(bookmarksUrl('stats'), {
           headers: { 'X-Session-ID': sessionId }
         }),
-        fetch('http://localhost:5001/api/bookmarks/collection', {
+        fetch(bookmarksUrl('collection'), {
           headers: { 'X-Session-ID': sessionId }
         })
       ]);

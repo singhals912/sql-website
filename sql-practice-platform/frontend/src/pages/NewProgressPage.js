@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProgressService from '../services/progressService';
+import { progressUrl } from '../config/environment';
 
 function NewProgressPage() {
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ function NewProgressPage() {
       console.log('DEBUG NewProgressPage: ProgressService session ID:', ProgressService.sessionId);
       
       // Test API call directly
-      const testResponse = await fetch(`http://localhost:5001/api/progress/overview`, {
+      const testResponse = await fetch(`${progressUrl()}/overview`, {
         headers: { 'X-Session-ID': ProgressService.sessionId }
       });
       const testData = await testResponse.json();

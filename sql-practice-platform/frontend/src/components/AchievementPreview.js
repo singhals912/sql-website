@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const AchievementPreview = () => {
   const [earnedAchievements, setEarnedAchievements] = useState([]);
@@ -27,7 +28,7 @@ const AchievementPreview = () => {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       if (!sessionId) return;
 
-      const response = await axios.get('http://localhost:5001/api/recommendations/achievements', {
+      const response = await axios.get(recommendationsUrl('achievements'), {
         headers: { 'x-session-id': sessionId }
       });
 

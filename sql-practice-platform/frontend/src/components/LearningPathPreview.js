@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const LearningPathPreview = () => {
   const [conceptMastery, setConceptMastery] = useState(null);
@@ -25,7 +26,7 @@ const LearningPathPreview = () => {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       if (!sessionId) return;
 
-      const response = await axios.get('http://localhost:5001/api/recommendations/problems', {
+      const response = await axios.get(recommendationsUrl('problems'), {
         headers: { 'x-session-id': sessionId }
       });
 

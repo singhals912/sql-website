@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const ProgressVisualization = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -26,7 +27,7 @@ const ProgressVisualization = () => {
       const sessionId = localStorage.getItem('sql_practice_session_id');
       console.log('📊 ProgressVisualization fetching with sessionId:', sessionId);
       
-      const response = await axios.get('http://localhost:5001/api/recommendations/progress-dashboard', {
+      const response = await axios.get(recommendationsUrl('progress-dashboard'), {
         headers: { 'x-session-id': sessionId }
       });
       

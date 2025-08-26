@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const RecommendationDashboard = () => {
   const [recommendations, setRecommendations] = useState([]);
@@ -34,7 +35,7 @@ const RecommendationDashboard = () => {
       }
       
       setLoading(true);
-      const response = await axios.get('http://localhost:5001/api/recommendations/problems', {
+      const response = await axios.get(recommendationsUrl('problems'), {
         headers: { 'x-session-id': sessionId }
       });
       if (response.data.success) {
@@ -51,7 +52,7 @@ const RecommendationDashboard = () => {
   const fetchDailyChallenge = async () => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
-      const response = await axios.get('http://localhost:5001/api/recommendations/daily-challenge', {
+      const response = await axios.get(recommendationsUrl('daily-challenge'), {
         headers: { 'x-session-id': sessionId }
       });
       if (response.data.success) {

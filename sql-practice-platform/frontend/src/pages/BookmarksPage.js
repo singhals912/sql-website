@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import BookmarksList from '../components/BookmarksList';
+import { bookmarksUrl } from '../config/environment';
 
 const BookmarksPage = () => {
   const [activeTab, setActiveTab] = useState('all');
@@ -55,7 +56,7 @@ const BookmarksPage = () => {
   const fetchStats = async () => {
     try {
       const sessionId = getSessionId();
-      const response = await fetch('http://localhost:5001/api/bookmarks/stats', {
+      const response = await fetch(bookmarksUrl('stats'), {
         headers: { 'X-Session-ID': sessionId }
       });
 

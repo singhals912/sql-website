@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
+import { sqlUrl } from '../config/environment';
 
 const SQLEditor = ({ 
   value, 
@@ -161,7 +162,7 @@ const SQLEditor = ({
           const query = model.getValue();
           const offset = model.getOffsetAt(position);
 
-          const response = await fetch('http://localhost:5001/api/sql/autocomplete', {
+          const response = await fetch(sqlUrl('autocomplete'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

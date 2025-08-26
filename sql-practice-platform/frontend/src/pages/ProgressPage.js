@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProgressService from '../services/progressService';
+import { apiUrl } from '../config/environment';
 
 function ProgressPage() {
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,7 @@ function ProgressPage() {
         ProgressService.clearCache();
         
         // Get basic problem count
-        const problemsResponse = await fetch('http://localhost:5001/api/sql/problems');
+        const problemsResponse = await fetch(apiUrl('sql/problems'));
         const problemsData = await problemsResponse.json();
         const totalProblems = problemsData.problems?.length || 0;
 

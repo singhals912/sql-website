@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { recommendationsUrl } from '../config/environment';
 
 const DailyChallengeWidget = ({ compact = false }) => {
   const [challenge, setChallenge] = useState(null);
@@ -31,7 +32,7 @@ const DailyChallengeWidget = ({ compact = false }) => {
   const fetchDailyChallenge = async () => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
-      const response = await axios.get('http://localhost:5001/api/recommendations/daily-challenge', {
+      const response = await axios.get(recommendationsUrl('daily-challenge'), {
         headers: { 'x-session-id': sessionId }
       });
       
@@ -48,7 +49,7 @@ const DailyChallengeWidget = ({ compact = false }) => {
   const fetchStreakInfo = async () => {
     try {
       const sessionId = localStorage.getItem('sql_practice_session_id');
-      const response = await axios.get('http://localhost:5001/api/recommendations/progress-dashboard', {
+      const response = await axios.get(recommendationsUrl('progress-dashboard'), {
         headers: { 'x-session-id': sessionId }
       });
       
