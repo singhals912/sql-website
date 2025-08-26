@@ -46,8 +46,96 @@ router.post('/register', async (req, res) => {
                 userExists = await pool.query(`SELECT ${idColumn} FROM users WHERE email = ?`, [email]);
                 console.log('✅ User existence check:', userExists.rows?.length || 0, 'existing users');
             } else {
-                console.log('❌ No email column found, cannot check for existing users');
-                return res.status(500).json({ error: 'Database table structure incompatible', availableColumns: columns });
+                console.log('❌ No email column found, attempting to add missing columns...');
+                
+                // Try to add missing columns to existing table
+                try {
+                    if (!columns.includes('email')) {
+                        console.log('🔧 Adding email column...');
+                        await pool.query('ALTER TABLE users ADD COLUMN email VARCHAR(255)');
+                    }
+                    if (!columns.includes('password_hash') && !columns.includes('password')) {
+                        console.log('🔧 Adding password_hash column...');
+                        await pool.query('ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)');
+                    }
+                    if (!columns.includes('username')) {
+                        console.log('🔧 Adding username column...');
+                        await pool.query('ALTER TABLE users ADD COLUMN username VARCHAR(50)');
+                    }
+                    if (!columns.includes('full_name')) {
+                        console.log('🔧 Adding full_name column...');
+                        await pool.query('ALTER TABLE users ADD COLUMN full_name VARCHAR(255)');
+                    }
+                    
+                    console.log('✅ Missing columns added, retrying registration...');
+                    
+                    // Now proceed with registration
+                    const userExists = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+                    if (userExists.rows && userExists.rows.length > 0) {
+                        return res.status(400).json({ error: 'User already exists' });
+                    }
+                    
+                } catch (alterError) {
+                    console.log('❌ Cannot alter table, using new table approach:', alterError.message);
+                    
+                    // If we can't alter, create a new table with different name
+                    try {
+                        console.log('🏗️ Creating app_users table as fallback...');
+                        await pool.query(`
+                            CREATE TABLE app_users (
+                                id INT AUTO_INCREMENT PRIMARY KEY,
+                                username VARCHAR(50) UNIQUE NOT NULL,
+                                email VARCHAR(255) UNIQUE NOT NULL,
+                                password_hash VARCHAR(255) NOT NULL,
+                                full_name VARCHAR(255),
+                                is_active BOOLEAN DEFAULT true,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        `);
+                        
+                        // Update all subsequent queries to use app_users
+                        const passwordHash = await bcrypt.hash(password, 10);
+                        const finalUsername = username || email.split('@')[0];
+                        
+                        await pool.query(
+                            'INSERT INTO app_users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                            [finalUsername, email, passwordHash, fullName]
+                        );
+                        
+                        const result = await pool.query(
+                            'SELECT id, username, email, full_name FROM app_users WHERE email = ? ORDER BY id DESC LIMIT 1',
+                            [email]
+                        );
+                        
+                        const user = result.rows[0];
+                        const token = jwt.sign(
+                            { userId: user.id, username: user.username, email: user.email },
+                            JWT_SECRET,
+                            { expiresIn: '7d' }
+                        );
+                        
+                        console.log('🎉 Registration successful with app_users table');
+                        return res.status(201).json({
+                            success: true,
+                            message: 'Account created successfully!',
+                            token,
+                            user: {
+                                id: user.id,
+                                username: user.username,
+                                email: user.email,
+                                fullName: user.full_name
+                            }
+                        });
+                        
+                    } catch (newTableError) {
+                        console.log('❌ All table solutions failed');
+                        return res.status(500).json({ 
+                            error: 'Cannot create compatible table structure',
+                            availableColumns: columns,
+                            details: newTableError.message
+                        });
+                    }
+                }
             }
             
             if (userExists.rows && userExists.rows.length > 0) {
