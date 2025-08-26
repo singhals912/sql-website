@@ -500,7 +500,7 @@ Write a SQL query that analyzes the customer and order data to find customers wh
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const response = await fetch(apiUrl('execute/sql'), {
+      const response = await fetch(sqlUrl('execute'), {
         method: 'POST',
         signal: controller.signal,
         headers: {
@@ -509,10 +509,9 @@ Write a SQL query that analyzes the customer and order data to find customers wh
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ 
-          sql: sqlQuery, 
+          query: sqlQuery, 
           dialect: selectedDialect,
-          problemId: problem?.id, // UUID from problem object
-          problemNumericId: problem?.numeric_id || parseInt(problemId) // Numeric ID
+          problemId: problem?.numeric_id || parseInt(problemId) // Use numeric ID for validation
         })
       });
       
@@ -528,23 +527,34 @@ Write a SQL query that analyzes the customer and order data to find customers wh
       console.log('DEBUG: Response data:', data);
       
       if (data.success) {
-        setResults(data.data);
+        // Use new backend response format
+        setResults({
+          rows: data.results || [],
+          rowCount: data.rowCount || 0,
+          validation: data.validation,
+          isCorrect: data.validation?.correct || false
+        });
+        
+        // Show validation message
+        if (data.validation && data.validation.message) {
+          console.log('📋 Validation Result:', data.validation.message);
+        }
+        
         setError(null);
         setErrorAnalysis(null);
         
         // Clear progress cache to ensure fresh data
         ProgressService.clearCache();
         
-        // Progress is automatically tracked by the backend in execute.js
-        console.log('DEBUG: Query completed. Progress should be automatically tracked by backend.', {
+        console.log('DEBUG: Query completed with validation:', {
           sessionId: ProgressService.sessionId,
-          problemId: problem?.id || problemId,
-          problemNumericId: problemId,
-          isCorrect: data.data.isCorrect
+          problemId: problem?.numeric_id || problemId,
+          isCorrect: data.validation?.correct || false,
+          message: data.validation?.message
         });
 
         // Emit progress update event if problem was solved correctly
-        if (data.data.isCorrect) {
+        if (data.validation?.correct) {
           console.log('🎉 Problem solved correctly! Emitting progressUpdated event...');
           window.dispatchEvent(new CustomEvent('progressUpdated', {
             detail: { problemId, solved: true }
@@ -1044,8 +1054,36 @@ Write a SQL query that analyzes the customer and order data to find customers wh
                     </div>
                   )}
 
+                  {/* Validation Message */}
+                  {results && results.validation && results.validation.message && (
+                    <div className={`mb-4 p-4 rounded-lg border ${
+                      results.validation.correct 
+                        ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400' 
+                        : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400'
+                    }`}>
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          {results.validation.correct ? (
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {results.validation.message}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Query Results */}
-                  {results.rows && results.rows.length > 0 && (
+                  {results && results.rows && results.rows.length > 0 && (
                     <div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         {results.rows.length} rows • {results.executionTime}
