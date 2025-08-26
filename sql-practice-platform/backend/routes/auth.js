@@ -53,7 +53,7 @@ router.post('/register', async (req, res) => {
                     console.log('🏗️ Creating app_users table as dedicated auth table...');
                         await pool.query(`
                             CREATE TABLE app_users (
-                                id INT AUTO_INCREMENT PRIMARY KEY,
+                                id SERIAL PRIMARY KEY,
                                 username VARCHAR(50) UNIQUE NOT NULL,
                                 email VARCHAR(255) UNIQUE NOT NULL,
                                 password_hash VARCHAR(255) NOT NULL,
@@ -68,12 +68,12 @@ router.post('/register', async (req, res) => {
                         const finalUsername = username || email.split('@')[0];
                         
                         await pool.query(
-                            'INSERT INTO app_users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                            'INSERT INTO app_users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
                             [finalUsername, email, passwordHash, fullName]
                         );
                         
                         const result = await pool.query(
-                            'SELECT id, username, email, full_name FROM app_users WHERE email = ? ORDER BY id DESC LIMIT 1',
+                            'SELECT id, username, email, full_name FROM app_users WHERE email = $1 ORDER BY id DESC LIMIT 1',
                             [email]
                         );
                         
@@ -177,11 +177,11 @@ router.post('/register', async (req, res) => {
         } catch (tableError) {
             console.log('❌ No users table exists, creating new one...', tableError.message);
             
-            // Create fresh table with MySQL syntax (most common on Railway)
+            // Create fresh table with PostgreSQL syntax
             console.log('🏗️ Creating new users table...');
             await pool.query(`
                 CREATE TABLE users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id SERIAL PRIMARY KEY,
                     username VARCHAR(50) UNIQUE NOT NULL,
                     email VARCHAR(255) UNIQUE NOT NULL,
                     password_hash VARCHAR(255) NOT NULL,
@@ -199,13 +199,13 @@ router.post('/register', async (req, res) => {
             // Insert user
             console.log('👤 Inserting first user...');
             await pool.query(
-                'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
                 [finalUsername, email, passwordHash, fullName]
             );
             
             // Get the created user
             const result = await pool.query(
-                'SELECT id, username, email, full_name FROM users WHERE email = ? ORDER BY id DESC LIMIT 1',
+                'SELECT id, username, email, full_name FROM users WHERE email = $1 ORDER BY id DESC LIMIT 1',
                 [email]
             );
             
@@ -258,20 +258,20 @@ router.post('/login', async (req, res) => {
         try {
             // First try users table
             result = await pool.query(
-                'SELECT * FROM users WHERE email = ? AND is_active = true',
+                'SELECT * FROM users WHERE email = $1 AND is_active = true',
                 [email]
             );
         } catch (selectError) {
             console.log('Trying users table without is_active filter...');
             try {
                 result = await pool.query(
-                    'SELECT * FROM users WHERE email = ?',
+                    'SELECT * FROM users WHERE email = $1',
                     [email]
                 );
             } catch (usersError) {
                 console.log('Users table failed, trying app_users table...');
                 result = await pool.query(
-                    'SELECT * FROM app_users WHERE email = ?',
+                    'SELECT * FROM app_users WHERE email = $1',
                     [email]
                 );
             }
@@ -335,10 +335,10 @@ router.get('/validate', async (req, res) => {
         // Get user data with flexible table and column detection
         let result;
         try {
-            result = await pool.query('SELECT * FROM users WHERE id = ? OR user_id = ? OR ID = ?', [decoded.userId, decoded.userId, decoded.userId]);
+            result = await pool.query('SELECT * FROM users WHERE id = $1 OR user_id = $1 OR ID = $1', [decoded.userId]);
         } catch (usersError) {
             console.log('Users table failed, trying app_users for validation...');
-            result = await pool.query('SELECT * FROM app_users WHERE id = ?', [decoded.userId]);
+            result = await pool.query('SELECT * FROM app_users WHERE id = $1', [decoded.userId]);
         }
         
         if (!result.rows || result.rows.length === 0) {
