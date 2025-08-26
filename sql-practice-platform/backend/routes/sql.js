@@ -285,4 +285,96 @@ router.post('/problems/:id/setup', async (req, res) => {
     }
 });
 
+// EMERGENCY: Import all 70 problems from export file
+router.post('/import-emergency', async (req, res) => {
+    try {
+        console.log('🚨 EMERGENCY IMPORT: Starting complete database import...');
+        
+        // Read export file
+        const fs = require('fs');
+        const path = require('path');
+        const exportFile = path.join(__dirname, '..', 'problems-export-2025-08-25.json');
+        
+        if (!fs.existsSync(exportFile)) {
+            throw new Error('Export file not found');
+        }
+        
+        const exportData = JSON.parse(fs.readFileSync(exportFile, 'utf8'));
+        console.log(`📁 Found ${exportData.totalProblems} problems`);
+        
+        // Clear and restore
+        await pool.query('TRUNCATE problem_schemas, problems, categories RESTART IDENTITY CASCADE');
+        
+        // Insert categories
+        for (const category of exportData.categories) {
+            await pool.query(
+                'INSERT INTO categories (id, name, slug, description, created_at) VALUES ($1, $2, $3, $4, $5)',
+                [category.id, category.name, category.slug, category.description || '', category.created_at || new Date()]
+            );
+        }
+        
+        // Insert problems
+        for (const problem of exportData.problems) {
+            await pool.query(`
+                INSERT INTO problems (
+                    id, title, slug, description, difficulty, 
+                    category_id, is_premium, is_active, numeric_id,
+                    tags, hints, created_at, total_submissions, 
+                    total_accepted, acceptance_rate, solution_sql, expected_output
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            `, [
+                problem.id, problem.title, problem.slug, 
+                problem.description || 'Problem description', problem.difficulty,
+                problem.category_id, problem.is_premium || false, problem.is_active !== false,
+                problem.numeric_id, JSON.stringify(problem.tags || []), JSON.stringify(problem.hints || []),
+                problem.created_at || new Date(), problem.total_submissions || 0,
+                problem.total_accepted || 0, problem.acceptance_rate || '0.00',
+                problem.solution_sql || '', problem.expected_output || '[]'
+            ]);
+        }
+        
+        // Insert schemas
+        for (const schema of exportData.schemas) {
+            await pool.query(`
+                INSERT INTO problem_schemas (
+                    problem_id, schema_name, setup_sql, teardown_sql, 
+                    sample_data, expected_output, solution_sql, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                schema.problem_id, schema.schema_name || 'default',
+                schema.setup_sql || '', schema.teardown_sql || '',
+                schema.sample_data || '', schema.expected_output || '[]',
+                schema.solution_sql || '', schema.created_at || new Date()
+            ]);
+        }
+        
+        // Reset sequences
+        await pool.query('SELECT setval(\'problems_id_seq\', (SELECT MAX(id) FROM problems))');
+        await pool.query('SELECT setval(\'categories_id_seq\', (SELECT MAX(id) FROM categories))');
+        
+        // Verify
+        const finalProblems = await pool.query('SELECT COUNT(*) FROM problems');
+        const finalSchemas = await pool.query('SELECT COUNT(*) FROM problem_schemas');
+        
+        console.log(`✅ IMPORT COMPLETE: ${finalProblems.rows[0].count} problems, ${finalSchemas.rows[0].count} schemas`);
+        
+        res.json({
+            success: true,
+            message: 'Emergency import completed successfully',
+            stats: {
+                problems: parseInt(finalProblems.rows[0].count),
+                schemas: parseInt(finalSchemas.rows[0].count)
+            }
+        });
+        
+    } catch (error) {
+        console.error('💥 Emergency import failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Emergency import failed',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;
