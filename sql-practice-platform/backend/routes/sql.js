@@ -1034,24 +1034,82 @@ SELECT i as subscriber_id,
 FROM generate_series(3100001, 3600000) i;`;
 
         const correctExpectedOutput = JSON.stringify([
-            {"region": "North America", "total_subscribers": "1250000"},
-            {"region": "Asia Pacific", "total_subscribers": "1100000"}
+            {"region": "North America", "total_subscribers": "12"}
         ]);
 
         const correctSolutionSql = `SELECT region, COUNT(*) as total_subscribers 
 FROM amazon_prime_subscribers 
 GROUP BY region 
-HAVING COUNT(*) > 1000000
+HAVING COUNT(*) > 10
 ORDER BY total_subscribers DESC;`;
 
-        // Update the PostgreSQL schema for Problem 7
+        // Update both MySQL and PostgreSQL schemas for Problem 7 to use simple 30-record approach
+        const simpleSetupSql = `CREATE TABLE amazon_prime_subscribers (
+    subscriber_id INTEGER,
+    region VARCHAR(50),
+    subscription_type VARCHAR(30),
+    monthly_fee DECIMAL(6,2),
+    signup_date DATE,
+    content_hours_watched INTEGER
+);
+
+INSERT INTO amazon_prime_subscribers VALUES
+-- North America: 12 subscribers (>10, should appear)
+(1, 'North America', 'Prime Video', 8.99, '2024-01-15', 25),
+(2, 'North America', 'Prime Video', 8.99, '2024-01-16', 30),
+(3, 'North America', 'Prime Video', 8.99, '2024-01-17', 20),
+(4, 'North America', 'Prime Video', 8.99, '2024-01-18', 35),
+(5, 'North America', 'Prime Video', 8.99, '2024-01-19', 28),
+(6, 'North America', 'Prime Video', 8.99, '2024-01-20', 22),
+(7, 'North America', 'Prime Video', 8.99, '2024-01-21', 40),
+(8, 'North America', 'Prime Video', 8.99, '2024-01-22', 15),
+(9, 'North America', 'Prime Video', 8.99, '2024-01-23', 33),
+(10, 'North America', 'Prime Video', 8.99, '2024-01-24', 27),
+(11, 'North America', 'Prime Video', 8.99, '2024-01-25', 31),
+(12, 'North America', 'Prime Video', 8.99, '2024-01-26', 24),
+-- Asia Pacific: 8 subscribers (<=10, should not appear)
+(13, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-01', 32),
+(14, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-02', 28),
+(15, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-03', 35),
+(16, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-04', 30),
+(17, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-05', 25),
+(18, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-06', 38),
+(19, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-07', 29),
+(20, 'Asia Pacific', 'Prime Video', 4.99, '2024-02-08', 33),
+-- Europe: 6 subscribers (<=10, should not appear)
+(21, 'Europe', 'Prime Video', 5.99, '2024-03-01', 18),
+(22, 'Europe', 'Prime Video', 5.99, '2024-03-02', 22),
+(23, 'Europe', 'Prime Video', 5.99, '2024-03-03', 16),
+(24, 'Europe', 'Prime Video', 5.99, '2024-03-04', 20),
+(25, 'Europe', 'Prime Video', 5.99, '2024-03-05', 24),
+(26, 'Europe', 'Prime Video', 5.99, '2024-03-06', 19),
+-- Latin America: 4 subscribers (<=10, should not appear)
+(27, 'Latin America', 'Prime Video', 3.99, '2024-04-01', 22),
+(28, 'Latin America', 'Prime Video', 3.99, '2024-04-02', 26),
+(29, 'Latin America', 'Prime Video', 3.99, '2024-04-03', 20),
+(30, 'Latin America', 'Prime Video', 3.99, '2024-04-04', 24);`;
+
+        // Also update the problem description to match the 30-record logic
+        await pool.query(`
+            UPDATE problems 
+            SET description = $1
+            WHERE numeric_id = 7
+        `, [`**Business Context:** Amazon Prime Video's content strategy team analyzes viewing patterns and subscriber engagement to optimize content acquisition and production investments.
+
+**Scenario:** You're a content analyst at Amazon Prime Video studying membership growth across different regions. The content team needs to identify regions with strong subscriber growth for targeted content localization.
+
+**Problem:** Find all regions with more than 10 total Prime Video subscribers.
+
+**Expected Output:** Regions with subscriber counts (>10 subscribers only), ordered by subscriber count descending.`]);
+
+        // Update both schemas
         await pool.query(`
             UPDATE problem_schemas 
             SET setup_sql = $1, 
                 expected_output = $2,
                 solution_sql = $3
-            WHERE problem_id = 7 AND sql_dialect = 'postgresql'
-        `, [correctSetupSql, correctExpectedOutput, correctSolutionSql]);
+            WHERE problem_id = 7
+        `, [simpleSetupSql, correctExpectedOutput, correctSolutionSql]);
 
         console.log('✅ Problem 7 database data fixed successfully');
 
