@@ -188,9 +188,98 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login endpoint
+// Login endpoint (with forgot password functionality)
 router.post('/login', async (req, res) => {
     try {
+        // Check if this is a forgot password request
+        if (req.query.action === 'forgot-password' || req.body.forgotPassword === true) {
+            console.log('🔑 Forgot password request for:', req.body.email);
+            const { email } = req.body;
+            
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return res.status(400).json({ error: 'Valid email is required' });
+            }
+            
+            // Check if user exists in either table
+            let user = null;
+            let tableName = '';
+            
+            try {
+                let result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+                if (result.rows && result.rows.length > 0) {
+                    user = result.rows[0];
+                    tableName = 'users';
+                } else {
+                    result = await pool.query('SELECT * FROM app_users WHERE email = $1', [email]);
+                    if (result.rows && result.rows.length > 0) {
+                        user = result.rows[0];
+                        tableName = 'app_users';
+                    }
+                }
+            } catch (selectError) {
+                const result = await pool.query('SELECT * FROM app_users WHERE email = $1', [email]);
+                if (result.rows && result.rows.length > 0) {
+                    user = result.rows[0];
+                    tableName = 'app_users';
+                }
+            }
+            
+            // Always return success to prevent email enumeration
+            if (!user) {
+                console.log('❌ User not found for password reset:', email);
+                return res.json({ 
+                    success: true, 
+                    message: 'If an account with that email exists, a password reset link has been sent.',
+                    forgotPassword: true
+                });
+            }
+            
+            // Create password_resets table if it doesn't exist
+            try {
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS password_resets (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        token VARCHAR(255) UNIQUE NOT NULL,
+                        expires_at TIMESTAMP NOT NULL,
+                        used BOOLEAN DEFAULT false,
+                        table_name VARCHAR(50) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+            } catch (tableError) {
+                console.log('Password resets table creation failed:', tableError.message);
+            }
+            
+            // Generate reset token
+            const resetToken = require('crypto').randomBytes(32).toString('hex');
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
+            
+            const idColumn = Object.keys(user).includes('id') ? 'id' : 'user_id';
+            
+            // Save reset token
+            await pool.query(
+                'INSERT INTO password_resets (user_id, email, token, expires_at, table_name) VALUES ($1, $2, $3, $4, $5)',
+                [user[idColumn], email, resetToken, expiresAt, tableName]
+            );
+            
+            console.log('✅ Password reset token created for:', email);
+            
+            // For now, return the reset link in the response (in production, send email)
+            const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+            
+            return res.json({ 
+                success: true,
+                message: 'Password reset link has been generated.',
+                forgotPassword: true,
+                // For development - remove in production
+                resetLink,
+                devToken: resetToken
+            });
+        }
+        
         console.log('🔑 Login attempt for:', req.body.email);
         const { email, password } = req.body;
         
