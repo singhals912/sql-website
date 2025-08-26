@@ -70,7 +70,7 @@ function ProblemsPage() {
       const response = await fetch(sqlUrl(`sql/problems?${params}`));
       
       if (!response.ok) {
-        throw new Error('Railway API failed');
+        throw new Error('Railway API failed - using fallback');
       }
       
       const data = await response.json();
