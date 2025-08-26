@@ -71,6 +71,13 @@ try {
   console.error('❌ Emergency-fix route failed:', e.message);
 }
 
+try {
+  app.use('/api/learning-paths', require('./routes/learning-paths'));
+  console.log('✅ Learning-paths route loaded');
+} catch (e) {
+  console.error('❌ Learning-paths route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');

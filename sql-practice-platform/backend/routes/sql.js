@@ -747,8 +747,9 @@ router.post('/execute', async (req, res) => {
                 console.log('💥 Setup failed with error:', setupError.message);
                 console.log('🔍 Full setup error:', setupError);
                 
-                // Fallback: Create ab_test_results table manually for problem 1
-                if (parseInt(problemId) === 1) {
+                // Fallback: Create tables manually for common problems
+                const problemIdInt = parseInt(problemId);
+                if (problemIdInt === 1) {
                     console.log('🆘 FALLBACK: Creating ab_test_results table manually for problem 1');
                     try {
                         await pool.query(`
@@ -770,9 +771,38 @@ router.post('/execute', async (req, res) => {
                             (7, 'A', false, '2024-01-18', 'desktop'),
                             (8, 'B', true, '2024-01-18', 'mobile');
                         `);
-                        console.log('✅ Fallback table creation successful');
+                        console.log('✅ Fallback table creation successful for problem 1');
                     } catch (fallbackError) {
-                        console.log('💥 Fallback table creation failed:', fallbackError.message);
+                        console.log('💥 Fallback table creation failed for problem 1:', fallbackError.message);
+                    }
+                } else if (problemIdInt === 7) {
+                    console.log('🆘 FALLBACK: Creating amazon_prime_subscribers table manually for problem 7');
+                    try {
+                        await pool.query(`
+                            DROP TABLE IF EXISTS amazon_prime_subscribers CASCADE;
+                            CREATE TABLE amazon_prime_subscribers (
+                                subscriber_id INTEGER,
+                                subscription_date DATE,
+                                country VARCHAR(50),
+                                device_type VARCHAR(30),
+                                monthly_fee DECIMAL(10,2),
+                                content_watched_hours INTEGER,
+                                last_activity_date DATE,
+                                subscription_status VARCHAR(20)
+                            );
+                            INSERT INTO amazon_prime_subscribers VALUES
+                            (1, '2024-01-01', 'USA', 'Smart TV', 8.99, 45, '2024-01-25', 'Active'),
+                            (2, '2024-01-02', 'Canada', 'Mobile', 8.99, 32, '2024-01-24', 'Active'),
+                            (3, '2024-01-03', 'UK', 'Tablet', 8.99, 28, '2024-01-20', 'Active'),
+                            (4, '2024-01-04', 'Germany', 'Desktop', 8.99, 15, '2024-01-15', 'Inactive'),
+                            (5, '2024-01-05', 'France', 'Smart TV', 8.99, 55, '2024-01-26', 'Active'),
+                            (6, '2024-01-06', 'Japan', 'Mobile', 8.99, 22, '2024-01-18', 'Active'),
+                            (7, '2024-01-07', 'Australia', 'Tablet', 8.99, 38, '2024-01-23', 'Active'),
+                            (8, '2024-01-08', 'Brazil', 'Desktop', 8.99, 12, '2024-01-10', 'Inactive');
+                        `);
+                        console.log('✅ Fallback table creation successful for problem 7');
+                    } catch (fallbackError) {
+                        console.log('💥 Fallback table creation failed for problem 7:', fallbackError.message);
                     }
                 }
             }
