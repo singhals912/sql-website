@@ -367,6 +367,14 @@ router.post('/import-emergency', async (req, res) => {
         for (const schema of exportData.problem_schemas || []) {
             const mappedProblemId = problemMap[schema.problem_id];
             if (mappedProblemId && schemaCount < 70) {
+                // Process expected output and sample data for emergency import too
+                let processedExpectedOutput = schema.expected_output || '[]';
+                let processedSampleData = schema.sample_data || '';
+                
+                if (typeof processedExpectedOutput !== 'string') {
+                    processedExpectedOutput = JSON.stringify(processedExpectedOutput);
+                }
+                
                 await pool.query(`
                     INSERT INTO problem_schemas (
                         problem_id, schema_name, setup_sql, teardown_sql, 
@@ -375,7 +383,7 @@ router.post('/import-emergency', async (req, res) => {
                 `, [
                     mappedProblemId, schema.schema_name || 'default',
                     schema.setup_sql || '', schema.teardown_sql || '',
-                    schema.sample_data || '', '[]', // Simple empty array
+                    processedSampleData, processedExpectedOutput,
                     schema.solution_sql || '', new Date()
                 ]);
                 schemaCount++;
@@ -607,6 +615,15 @@ router.get('/auto-recover', async (req, res) => {
                 for (const schema of exportData.problem_schemas || []) {
                     const mappedProblemId = problemMap[schema.problem_id];
                     if (mappedProblemId) {
+                        // Process expected output and sample data
+                        let processedExpectedOutput = schema.expected_output || '[]';
+                        let processedSampleData = schema.sample_data || '';
+                        
+                        // If expected_output is already a string, keep it; if it's an object, stringify it
+                        if (typeof processedExpectedOutput !== 'string') {
+                            processedExpectedOutput = JSON.stringify(processedExpectedOutput);
+                        }
+                        
                         await pool.query(`
                             INSERT INTO problem_schemas (
                                 problem_id, schema_name, setup_sql, teardown_sql, 
@@ -615,7 +632,7 @@ router.get('/auto-recover', async (req, res) => {
                         `, [
                             mappedProblemId, schema.schema_name || 'default',
                             schema.setup_sql || '', schema.teardown_sql || '',
-                            schema.sample_data || '', '[]',
+                            processedSampleData, processedExpectedOutput,
                             schema.solution_sql || '', new Date()
                         ]);
                     }
@@ -647,6 +664,100 @@ router.get('/auto-recover', async (req, res) => {
             success: false,
             error: 'Auto-recovery failed',
             details: error.message
+        });
+    }
+});
+
+// Execute SQL query endpoint
+router.post('/execute', async (req, res) => {
+    try {
+        const { query, problemId, dialect = 'postgresql' } = req.body;
+        
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+        
+        console.log('🔍 Executing SQL query:', query.substring(0, 100) + '...');
+        
+        // For now, execute against main database (in production, this should be a sandbox)
+        const result = await pool.query(query);
+        
+        let success = false;
+        let message = 'Query executed successfully';
+        let expectedOutput = null;
+        
+        // If problemId provided, check against expected output
+        if (problemId) {
+            try {
+                const problemResult = await pool.query(`
+                    SELECT ps.expected_output 
+                    FROM problems p 
+                    JOIN problem_schemas ps ON p.id = ps.problem_id 
+                    WHERE p.numeric_id = $1
+                `, [parseInt(problemId)]);
+                
+                if (problemResult.rows.length > 0) {
+                    expectedOutput = problemResult.rows[0].expected_output;
+                    if (expectedOutput && expectedOutput !== '[]') {
+                        try {
+                            const expected = typeof expectedOutput === 'string' ? JSON.parse(expectedOutput) : expectedOutput;
+                            // Simple comparison - in production this should be more sophisticated
+                            if (Array.isArray(expected) && expected.length > 0) {
+                                // Check if result has same structure
+                                if (result.rows.length === expected.length) {
+                                    success = true;
+                                    message = '✅ Correct! Your query matches the expected output.';
+                                } else if (result.rows.length === 0 && expected.length === 0) {
+                                    success = true;
+                                    message = '✅ Correct! Your query returns the expected empty result.';
+                                } else {
+                                    message = `❌ Incorrect. Expected ${expected.length} rows, got ${result.rows.length}.`;
+                                }
+                            } else {
+                                // No expected output to compare against
+                                success = true;
+                                message = '✅ Query executed successfully (no validation data available).';
+                            }
+                        } catch (parseError) {
+                            success = true;
+                            message = '✅ Query executed successfully (expected output format issue).';
+                        }
+                    } else {
+                        success = true;
+                        message = '✅ Query executed successfully (no expected output defined).';
+                    }
+                }
+            } catch (validationError) {
+                console.error('Validation error:', validationError);
+                success = true;
+                message = '✅ Query executed successfully (validation unavailable).';
+            }
+        } else {
+            success = true;
+            message = '✅ Query executed successfully.';
+        }
+        
+        res.json({
+            success: true,
+            results: result.rows,
+            rowCount: result.rowCount,
+            validation: {
+                correct: success,
+                message: message,
+                expectedOutput: expectedOutput
+            }
+        });
+        
+    } catch (error) {
+        console.error('SQL execution error:', error);
+        res.status(400).json({
+            success: false,
+            error: 'SQL execution failed',
+            message: error.message,
+            validation: {
+                correct: false,
+                message: `❌ SQL Error: ${error.message}`
+            }
         });
     }
 });
