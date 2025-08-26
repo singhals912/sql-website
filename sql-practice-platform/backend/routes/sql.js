@@ -305,16 +305,24 @@ router.post('/import-emergency', async (req, res) => {
         // Clear and restore
         await pool.query('TRUNCATE problem_schemas, problems, categories RESTART IDENTITY CASCADE');
         
-        // Insert categories
-        for (const category of exportData.categories) {
+        // Insert categories with integer IDs
+        const categoryMap = {};
+        for (let i = 0; i < exportData.categories.length; i++) {
+            const category = exportData.categories[i];
+            const newId = i + 1;
+            categoryMap[category.id] = newId;
             await pool.query(
                 'INSERT INTO categories (id, name, slug, description, created_at) VALUES ($1, $2, $3, $4, $5)',
-                [category.id, category.name, category.slug, category.description || '', category.created_at || new Date()]
+                [newId, category.name, category.slug, category.description || '', category.created_at || new Date()]
             );
         }
         
-        // Insert problems
-        for (const problem of exportData.problems) {
+        // Insert problems with mapped category IDs and integer IDs
+        const problemMap = {};
+        for (let i = 0; i < exportData.problems.length; i++) {
+            const problem = exportData.problems[i];
+            const newId = i + 1;
+            problemMap[problem.id] = newId;
             await pool.query(`
                 INSERT INTO problems (
                     id, title, slug, description, difficulty, 
@@ -323,9 +331,9 @@ router.post('/import-emergency', async (req, res) => {
                     total_accepted, acceptance_rate, solution_sql, expected_output
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             `, [
-                problem.id, problem.title, problem.slug, 
+                newId, problem.title, problem.slug, 
                 problem.description || 'Problem description', problem.difficulty,
-                problem.category_id, problem.is_premium || false, problem.is_active !== false,
+                categoryMap[problem.category_id] || 1, problem.is_premium || false, problem.is_active !== false,
                 problem.numeric_id, JSON.stringify(problem.tags || []), JSON.stringify(problem.hints || []),
                 problem.created_at || new Date(), problem.total_submissions || 0,
                 problem.total_accepted || 0, problem.acceptance_rate || '0.00',
@@ -333,19 +341,22 @@ router.post('/import-emergency', async (req, res) => {
             ]);
         }
         
-        // Insert schemas
+        // Insert schemas with mapped problem IDs
         for (const schema of exportData.schemas) {
-            await pool.query(`
-                INSERT INTO problem_schemas (
-                    problem_id, schema_name, setup_sql, teardown_sql, 
-                    sample_data, expected_output, solution_sql, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [
-                schema.problem_id, schema.schema_name || 'default',
-                schema.setup_sql || '', schema.teardown_sql || '',
-                schema.sample_data || '', schema.expected_output || '[]',
-                schema.solution_sql || '', schema.created_at || new Date()
-            ]);
+            const mappedProblemId = problemMap[schema.problem_id];
+            if (mappedProblemId) {
+                await pool.query(`
+                    INSERT INTO problem_schemas (
+                        problem_id, schema_name, setup_sql, teardown_sql, 
+                        sample_data, expected_output, solution_sql, created_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    mappedProblemId, schema.schema_name || 'default',
+                    schema.setup_sql || '', schema.teardown_sql || '',
+                    schema.sample_data || '', schema.expected_output || '[]',
+                    schema.solution_sql || '', schema.created_at || new Date()
+                ]);
+            }
         }
         
         // Reset sequences
