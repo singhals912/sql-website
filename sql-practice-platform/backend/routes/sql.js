@@ -690,8 +690,16 @@ router.post('/execute', async (req, res) => {
                 `, [parseInt(problemId)]);
                 
                 if (problemResult.rows.length > 0 && problemResult.rows[0].setup_sql) {
-                    const setupSql = problemResult.rows[0].setup_sql;
+                    let setupSql = problemResult.rows[0].setup_sql;
                     console.log('🏗️ Setting up problem environment...');
+                    
+                    // Convert MySQL syntax to PostgreSQL
+                    setupSql = setupSql
+                        .replace(/TINYINT\(\d+\)/g, 'SMALLINT')  // TINYINT(1) -> SMALLINT
+                        .replace(/TINYINT/g, 'SMALLINT')         // TINYINT -> SMALLINT
+                        .replace(/AUTO_INCREMENT/g, 'SERIAL')    // AUTO_INCREMENT -> SERIAL
+                        .replace(/ENGINE=\w+/g, '')             // Remove ENGINE clauses
+                        .replace(/DEFAULT CHARSET=\w+/g, '');   // Remove CHARSET clauses
                     
                     // Execute setup SQL to create tables and insert data
                     await pool.query(setupSql);
