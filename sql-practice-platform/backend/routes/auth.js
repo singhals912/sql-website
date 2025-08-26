@@ -10,7 +10,7 @@ console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM');
 // JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
-// Registration endpoint
+// Registration endpoint with email verification
 router.post('/register', async (req, res) => {
     try {
         console.log('🔵 Registration attempt for:', req.body.email);
@@ -23,6 +23,13 @@ router.post('/register', async (req, res) => {
         
         if (password.length < 8) {
             return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+        }
+        
+        // Strong password validation
+        if (password === '12345678' || password.length < 8 || !/(?=.*[a-zA-Z])/.test(password)) {
+            return res.status(400).json({ 
+                error: 'Password must be at least 8 characters and contain letters and numbers' 
+            });
         }
         
         // Try to inspect existing users table
@@ -38,6 +45,19 @@ router.post('/register', async (req, res) => {
                 throw new Error('Incompatible table structure');
             }
             
+            // Add missing verification columns if they don't exist
+            if (!columns.includes('is_verified')) {
+                try {
+                    console.log('🔧 Adding verification columns to users table...');
+                    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false');
+                    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(10)');
+                    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP');
+                    console.log('✅ Verification columns added to users table');
+                } catch (alterError) {
+                    console.log('❌ Failed to add verification columns:', alterError.message);
+                }
+            }
+            
             // Users table has email - use it
             const idColumn = columns.includes('id') ? 'id' : 
                             columns.includes('user_id') ? 'user_id' :
@@ -51,13 +71,18 @@ router.post('/register', async (req, res) => {
                 return res.status(400).json({ error: 'User already exists' });
             }
             
-            // Hash password and create user in existing users table
+            // Hash password and create unverified user in existing users table
             const passwordHash = await bcrypt.hash(password, 10);
             const finalUsername = username || email.split('@')[0];
             
+            // Generate OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpiry = new Date();
+            otpExpiry.setMinutes(otpExpiry.getMinutes() + 10); // 10 minutes expiry
+            
             await pool.query(
-                'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
-                [finalUsername, email, passwordHash, fullName]
+                'INSERT INTO users (username, email, password_hash, full_name, is_verified, otp_code, otp_expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [finalUsername, email, passwordHash, fullName, false, otp, otpExpiry]
             );
             
             const result = await pool.query(
@@ -66,23 +91,15 @@ router.post('/register', async (req, res) => {
             );
             
             const user = result.rows[0];
-            const token = jwt.sign(
-                { userId: user[idColumn], username: user.username, email: user.email },
-                JWT_SECRET,
-                { expiresIn: '7d' }
-            );
             
-            console.log('🎉 Registration successful with users table');
+            console.log('🎉 Registration successful with users table - OTP required');
             return res.status(201).json({
                 success: true,
-                message: 'Account created successfully!',
-                token,
-                user: {
-                    id: user[idColumn],
-                    username: user.username,
-                    email: user.email,
-                    fullName: user.full_name
-                }
+                message: 'Account created! Please check your email for verification code.',
+                requiresVerification: true,
+                userId: user[idColumn],
+                // For development - remove in production
+                ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
             });
             
         } catch (tableError) {
@@ -99,6 +116,9 @@ router.post('/register', async (req, res) => {
                         password_hash VARCHAR(255) NOT NULL,
                         full_name VARCHAR(255),
                         is_active BOOLEAN DEFAULT true,
+                        is_verified BOOLEAN DEFAULT false,
+                        otp_code VARCHAR(10),
+                        otp_expires_at TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 `);
@@ -109,13 +129,18 @@ router.post('/register', async (req, res) => {
                     return res.status(400).json({ error: 'User already exists' });
                 }
                 
-                // Hash password and create user in app_users
+                // Hash password and create unverified user in app_users
                 const passwordHash = await bcrypt.hash(password, 10);
                 const finalUsername = username || email.split('@')[0];
                 
+                // Generate OTP
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                const otpExpiry = new Date();
+                otpExpiry.setMinutes(otpExpiry.getMinutes() + 10); // 10 minutes expiry
+                
                 await pool.query(
-                    'INSERT INTO app_users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4)',
-                    [finalUsername, email, passwordHash, fullName]
+                    'INSERT INTO app_users (username, email, password_hash, full_name, is_verified, otp_code, otp_expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [finalUsername, email, passwordHash, fullName, false, otp, otpExpiry]
                 );
                 
                 const result = await pool.query(
@@ -124,23 +149,15 @@ router.post('/register', async (req, res) => {
                 );
                 
                 const user = result.rows[0];
-                const token = jwt.sign(
-                    { userId: user.id, username: user.username, email: user.email },
-                    JWT_SECRET,
-                    { expiresIn: '7d' }
-                );
                 
-                console.log('🎉 Registration successful with app_users table');
+                console.log('🎉 Registration successful with app_users table - OTP required');
                 return res.status(201).json({
                     success: true,
-                    message: 'Account created successfully!',
-                    token,
-                    user: {
-                        id: user.id,
-                        username: user.username,
-                        email: user.email,
-                        fullName: user.full_name
-                    }
+                    message: 'Account created! Please check your email for verification code.',
+                    requiresVerification: true,
+                    userId: user.id,
+                    // For development - remove in production
+                    ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
                 });
                 
             } catch (appUsersError) {
@@ -200,6 +217,15 @@ router.post('/login', async (req, res) => {
         const isValidPassword = await bcrypt.compare(password, user[passwordColumn]);
         if (!isValidPassword) {
             return res.status(400).json({ error: 'Invalid credentials' });
+        }
+        
+        // Check if user is verified
+        if (user.is_verified === false) {
+            return res.status(403).json({ 
+                error: 'Please verify your email address before logging in.',
+                requiresVerification: true,
+                userId: user[idColumn]
+            });
         }
         
         // Create JWT token
@@ -437,6 +463,163 @@ router.post('/reset-password', async (req, res) => {
     } catch (error) {
         console.error('❌ Reset password error:', error);
         res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
+// Email verification endpoint
+router.post('/verify-email', async (req, res) => {
+    try {
+        console.log('📧 Email verification attempt');
+        const { userId, otp } = req.body;
+        
+        if (!userId || !otp) {
+            return res.status(400).json({ error: 'User ID and OTP are required' });
+        }
+        
+        // Find user with OTP in both tables
+        let user = null;
+        let tableName = '';
+        let idColumn = 'id';
+        
+        try {
+            let result = await pool.query('SELECT * FROM users WHERE id = $1 OR user_id = $1', [userId]);
+            if (result.rows && result.rows.length > 0) {
+                user = result.rows[0];
+                tableName = 'users';
+                idColumn = Object.keys(user).includes('id') ? 'id' : 'user_id';
+            } else {
+                result = await pool.query('SELECT * FROM app_users WHERE id = $1', [userId]);
+                if (result.rows && result.rows.length > 0) {
+                    user = result.rows[0];
+                    tableName = 'app_users';
+                }
+            }
+        } catch (selectError) {
+            const result = await pool.query('SELECT * FROM app_users WHERE id = $1', [userId]);
+            if (result.rows && result.rows.length > 0) {
+                user = result.rows[0];
+                tableName = 'app_users';
+            }
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Check if already verified
+        if (user.is_verified === true) {
+            return res.status(400).json({ error: 'Email is already verified' });
+        }
+        
+        // Check OTP
+        if (!user.otp_code || user.otp_code !== otp.toString()) {
+            return res.status(400).json({ error: 'Invalid verification code' });
+        }
+        
+        // Check OTP expiry
+        if (user.otp_expires_at && new Date() > new Date(user.otp_expires_at)) {
+            return res.status(400).json({ error: 'Verification code has expired' });
+        }
+        
+        // Verify user
+        await pool.query(
+            `UPDATE ${tableName} SET is_verified = true, otp_code = NULL, otp_expires_at = NULL WHERE ${idColumn} = $1`,
+            [userId]
+        );
+        
+        // Create JWT token
+        const token = jwt.sign(
+            { userId: user[idColumn], username: user.username, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        console.log('✅ Email verification successful for:', user.email);
+        res.json({
+            success: true,
+            message: 'Email verified successfully! You are now logged in.',
+            token,
+            user: {
+                id: user[idColumn],
+                username: user.username,
+                email: user.email,
+                fullName: user.full_name
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Email verification error:', error);
+        res.status(500).json({ error: 'Failed to verify email' });
+    }
+});
+
+// Resend verification code endpoint
+router.post('/resend-verification', async (req, res) => {
+    try {
+        console.log('🔄 Resend verification request');
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+        
+        // Find user in both tables
+        let user = null;
+        let tableName = '';
+        let idColumn = 'id';
+        
+        try {
+            let result = await pool.query('SELECT * FROM users WHERE id = $1 OR user_id = $1', [userId]);
+            if (result.rows && result.rows.length > 0) {
+                user = result.rows[0];
+                tableName = 'users';
+                idColumn = Object.keys(user).includes('id') ? 'id' : 'user_id';
+            } else {
+                result = await pool.query('SELECT * FROM app_users WHERE id = $1', [userId]);
+                if (result.rows && result.rows.length > 0) {
+                    user = result.rows[0];
+                    tableName = 'app_users';
+                }
+            }
+        } catch (selectError) {
+            const result = await pool.query('SELECT * FROM app_users WHERE id = $1', [userId]);
+            if (result.rows && result.rows.length > 0) {
+                user = result.rows[0];
+                tableName = 'app_users';
+            }
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Check if already verified
+        if (user.is_verified === true) {
+            return res.status(400).json({ error: 'Email is already verified' });
+        }
+        
+        // Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date();
+        otpExpiry.setMinutes(otpExpiry.getMinutes() + 10); // 10 minutes expiry
+        
+        // Update OTP
+        await pool.query(
+            `UPDATE ${tableName} SET otp_code = $1, otp_expires_at = $2 WHERE ${idColumn} = $3`,
+            [otp, otpExpiry, userId]
+        );
+        
+        console.log('✅ New verification code generated for:', user.email);
+        res.json({
+            success: true,
+            message: 'A new verification code has been sent to your email.',
+            // For development - remove in production
+            ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
+        });
+        
+    } catch (error) {
+        console.error('❌ Resend verification error:', error);
+        res.status(500).json({ error: 'Failed to resend verification code' });
     }
 });
 
