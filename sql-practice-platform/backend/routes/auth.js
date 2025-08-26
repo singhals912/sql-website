@@ -94,9 +94,48 @@ router.post('/test-register', async (req, res) => {
     }
 });
 
+// Debug table structure
+router.get('/debug-tables', async (req, res) => {
+    try {
+        console.log('🔍 Checking existing tables...');
+        
+        // Try to describe users table
+        try {
+            const tableInfo = await pool.query('DESCRIBE users');
+            console.log('✅ Users table structure:', tableInfo.rows);
+            res.json({ success: true, tableStructure: tableInfo.rows });
+        } catch (describeError) {
+            console.log('❌ DESCRIBE failed, trying SHOW COLUMNS:', describeError.message);
+            try {
+                const columns = await pool.query('SHOW COLUMNS FROM users');
+                console.log('✅ Users table columns:', columns.rows);
+                res.json({ success: true, tableColumns: columns.rows });
+            } catch (showError) {
+                console.log('❌ SHOW COLUMNS failed, trying PostgreSQL info:', showError.message);
+                try {
+                    const pgInfo = await pool.query(`
+                        SELECT column_name, data_type, is_nullable 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'users'
+                    `);
+                    console.log('✅ PostgreSQL table info:', pgInfo.rows);
+                    res.json({ success: true, pgTableInfo: pgInfo.rows });
+                } catch (pgError) {
+                    console.log('❌ All table inspection methods failed');
+                    res.status(500).json({ error: 'Cannot inspect table structure', details: pgError.message });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Debug tables error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Register
 router.post('/register', authRateLimit, validateRegistration, async (req, res) => {
     try {
+        console.log('🔵 Registration started for:', req.body.email);
         const { username, email, password, fullName } = req.body;
         
         // Auto-create users table if it doesn't exist - try both PostgreSQL and MySQL syntax
