@@ -693,20 +693,43 @@ router.post('/execute', async (req, res) => {
                     let setupSql = problemResult.rows[0].setup_sql;
                     console.log('🏗️ Setting up problem environment...');
                     
-                    // Convert MySQL syntax to PostgreSQL
+                    // Convert MySQL syntax to PostgreSQL with enhanced BOOLEAN handling
+                    console.log('🔧 Original setup SQL:', setupSql.substring(0, 200) + '...');
                     setupSql = setupSql
-                        .replace(/TINYINT\(\d+\)/g, 'BOOLEAN')   // TINYINT(1) -> BOOLEAN 
-                        .replace(/TINYINT/g, 'SMALLINT')         // TINYINT -> SMALLINT (only for non-sized TINYINT)
-                        .replace(/AUTO_INCREMENT/g, 'SERIAL')    // AUTO_INCREMENT -> SERIAL
-                        .replace(/ENGINE=\w+/g, '')             // Remove ENGINE clauses
-                        .replace(/DEFAULT CHARSET=\w+/g, '');   // Remove CHARSET clauses
+                        .replace(/TINYINT\(1\)/gi, 'BOOLEAN')    // TINYINT(1) -> BOOLEAN (case insensitive)
+                        .replace(/TINYINT\(\d+\)/gi, 'SMALLINT') // Other TINYINT(n) -> SMALLINT  
+                        .replace(/TINYINT(?!\()/gi, 'SMALLINT') // Plain TINYINT -> SMALLINT (but not TINYINT(...))
+                        .replace(/AUTO_INCREMENT/gi, 'SERIAL')   // AUTO_INCREMENT -> SERIAL (case insensitive)
+                        .replace(/ENGINE=\w+/gi, '')            // Remove ENGINE clauses
+                        .replace(/DEFAULT CHARSET=\w+/gi, '');  // Remove CHARSET clauses
                     
-                    // Drop existing table if it exists (to recreate with correct data types)
-                    await pool.query('DROP TABLE IF EXISTS ab_test_results CASCADE');
+                    console.log('🔧 Converted setup SQL:', setupSql.substring(0, 200) + '...');
                     
-                    // Execute setup SQL to create tables and insert data
+                    // Force drop and recreate ALL tables from this setup to ensure correct data types
+                    const tableNames = [];
+                    const createTableMatches = setupSql.match(/CREATE TABLE (?:IF NOT EXISTS )?\s*`?(\w+)`?/gi);
+                    if (createTableMatches) {
+                        createTableMatches.forEach(match => {
+                            const tableName = match.replace(/CREATE TABLE (?:IF NOT EXISTS )?\s*`?(\w+)`?/i, '$1');
+                            if (tableName && !tableNames.includes(tableName)) {
+                                tableNames.push(tableName);
+                            }
+                        });
+                    }
+                    
+                    // Drop all tables from this problem setup
+                    for (const tableName of tableNames) {
+                        try {
+                            await pool.query(`DROP TABLE IF EXISTS ${tableName} CASCADE`);
+                            console.log(`🗑️ Dropped existing table: ${tableName}`);
+                        } catch (dropError) {
+                            console.log(`⚠️ Could not drop table ${tableName}:`, dropError.message);
+                        }
+                    }
+                    
+                    // Execute setup SQL to create tables and insert data with correct types
                     await pool.query(setupSql);
-                    console.log('✅ Problem environment set up successfully');
+                    console.log('✅ Problem environment set up successfully with correct data types');
                 }
             } catch (setupError) {
                 console.log('⚠️ Setup already exists or failed:', setupError.message);
