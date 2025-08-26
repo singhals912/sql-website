@@ -677,9 +677,33 @@ router.post('/execute', async (req, res) => {
             return res.status(400).json({ error: 'Query is required' });
         }
         
-        console.log('🔍 Executing SQL query:', query.substring(0, 100) + '...');
+        console.log('🔍 Executing SQL query for problem', problemId);
         
-        // For now, execute against main database (in production, this should be a sandbox)
+        // If problemId provided, set up the problem environment first
+        if (problemId) {
+            try {
+                const problemResult = await pool.query(`
+                    SELECT ps.setup_sql 
+                    FROM problems p 
+                    JOIN problem_schemas ps ON p.id = ps.problem_id 
+                    WHERE p.numeric_id = $1
+                `, [parseInt(problemId)]);
+                
+                if (problemResult.rows.length > 0 && problemResult.rows[0].setup_sql) {
+                    const setupSql = problemResult.rows[0].setup_sql;
+                    console.log('🏗️ Setting up problem environment...');
+                    
+                    // Execute setup SQL to create tables and insert data
+                    await pool.query(setupSql);
+                    console.log('✅ Problem environment set up successfully');
+                }
+            } catch (setupError) {
+                console.log('⚠️ Setup already exists or failed:', setupError.message);
+                // Continue with query execution even if setup fails (tables might already exist)
+            }
+        }
+        
+        // Execute the user's query
         const result = await pool.query(query);
         
         let success = false;
