@@ -99,8 +99,9 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
     try {
         const { username, email, password, fullName } = req.body;
         
-        // Auto-create users table if it doesn't exist
+        // Auto-create users table if it doesn't exist - try both PostgreSQL and MySQL syntax
         try {
+            // First try PostgreSQL syntax
             await pool.query(`
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -116,6 +117,30 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
+        } catch (postgresError) {
+            console.log('PostgreSQL syntax failed, trying MySQL syntax:', postgresError.message);
+            try {
+                // Try MySQL syntax
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        full_name VARCHAR(255),
+                        is_active BOOLEAN DEFAULT true,
+                        is_verified BOOLEAN DEFAULT false,
+                        verification_token VARCHAR(255),
+                        verification_expires TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    )
+                `);
+                console.log('MySQL syntax succeeded');
+            } catch (mysqlError) {
+                console.log('Both PostgreSQL and MySQL syntax failed:', mysqlError.message);
+            }
+        }
             
             // Create email verification table
             await pool.query(`
@@ -134,11 +159,20 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
             console.log('Table creation failed but continuing:', tableError.message);
         }
         
-        // Check if user exists
-        const userExists = await pool.query(
-            'SELECT id FROM users WHERE email = $1 OR username = $2',
-            [email, username]
-        );
+        // Check if user exists - try both parameter styles
+        let userExists;
+        try {
+            userExists = await pool.query(
+                'SELECT id FROM users WHERE email = $1 OR username = $2',
+                [email, username]
+            );
+        } catch (paramError) {
+            console.log('PostgreSQL parameters failed, trying MySQL style:', paramError.message);
+            userExists = await pool.query(
+                'SELECT id FROM users WHERE email = ? OR username = ?',
+                [email, username]
+            );
+        }
         
         if (userExists.rows.length > 0) {
             return res.status(400).json({ error: 'User already exists' });
@@ -150,10 +184,24 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
         
         // Create user (generate username from email if not provided)
         const finalUsername = username || email.split('@')[0];
-        const result = await pool.query(
-            'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4) RETURNING id, username, email, full_name',
-            [finalUsername, email, passwordHash, fullName]
-        );
+        let result;
+        try {
+            result = await pool.query(
+                'INSERT INTO users (username, email, password_hash, full_name) VALUES ($1, $2, $3, $4) RETURNING id, username, email, full_name',
+                [finalUsername, email, passwordHash, fullName]
+            );
+        } catch (insertError) {
+            console.log('PostgreSQL insert failed, trying MySQL style:', insertError.message);
+            // For MySQL, we need to do insert then select
+            await pool.query(
+                'INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
+                [finalUsername, email, passwordHash, fullName]
+            );
+            result = await pool.query(
+                'SELECT id, username, email, full_name FROM users WHERE email = ? ORDER BY id DESC LIMIT 1',
+                [email]
+            );
+        }
         
         const user = result.rows[0];
         
