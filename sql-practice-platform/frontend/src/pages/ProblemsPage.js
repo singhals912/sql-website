@@ -125,7 +125,29 @@ function ProblemsPage() {
         if (recoveryData.success && recoveryData.restored) {
           console.log('✅ Auto-recovery successful, retrying fetch...');
           // Retry the original request after recovery
-          const retryResponse = await fetch(sqlUrl(`problems?${params}`));
+          const retryParams = new URLSearchParams();
+          if (selectedDifficulty !== 'all') retryParams.append('difficulty', selectedDifficulty);
+          if (selectedCategory !== 'all') {
+            const categoryNameToSlug = {
+              'A/B Testing': 'a/b-testing',
+              'Advanced Topics': 'advanced-topics',
+              'Aggregation': 'aggregation',
+              'Basic Queries': 'basic-queries',
+              'Energy Analytics': 'energy-analytics',
+              'Fraud Detection': 'fraud-detection',
+              'Joins': 'joins',
+              'Recommendation Systems': 'recommendation-systems',
+              'Subqueries': 'subqueries',
+              'Supply Chain': 'supply-chain',
+              'Time Analysis': 'time-analysis',
+              'Window Functions': 'window-functions'
+            };
+            const categorySlug = categoryNameToSlug[selectedCategory] || selectedCategory;
+            retryParams.append('category', categorySlug);
+          }
+          if (selectedCompany !== 'all') retryParams.append('company', selectedCompany);
+          
+          const retryResponse = await fetch(sqlUrl(`problems?${retryParams}`));
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
             if (retryData && retryData.problems && retryData.problems.length > 0) {
