@@ -5,20 +5,18 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { authRateLimit } = require('../middleware/authMiddleware');
-// Safe import of email service - fallback if not available
-let generateOTP, sendVerificationEmail, sendPasswordResetEmail;
-try {
-    const emailService = require('../services/emailService');
-    generateOTP = emailService.generateOTP;
-    sendVerificationEmail = emailService.sendVerificationEmail;
-    sendPasswordResetEmail = emailService.sendPasswordResetEmail;
-} catch (emailError) {
-    console.warn('Email service not available:', emailError.message);
-    // Fallback functions
-    generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-    sendVerificationEmail = async () => ({ success: false, error: 'Email service unavailable' });
-    sendPasswordResetEmail = async () => ({ success: false, error: 'Email service unavailable' });
-}
+// Inline email functions to avoid import issues during deployment
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const sendVerificationEmail = async (email, otp, fullName) => {
+    console.log(`📧 Email verification for ${email}: OTP ${otp}`);
+    return { success: false, error: 'Email service not configured yet' };
+};
+
+const sendPasswordResetEmail = async (email, token, fullName) => {
+    console.log(`📧 Password reset for ${email}: Token ${token}`);
+    return { success: false, error: 'Email service not configured yet' };
+};
 
 // Ensure JWT secret exists and is secure
 const JWT_SECRET = (() => {
