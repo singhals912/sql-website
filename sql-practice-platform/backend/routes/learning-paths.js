@@ -223,61 +223,158 @@ router.get('/:problemId/learning-paths', async (req, res) => {
 router.get('/:pathId', async (req, res) => {
     try {
         const { pathId } = req.params;
+        console.log('📚 Getting learning path details for ID:', pathId);
         
-        // Get learning path details
-        const pathResult = await pool.query(`
-            SELECT * FROM learning_paths 
-            WHERE id = $1 AND is_active = true
-        `, [pathId]);
+        // Try to get learning path details - with fallback to category-based approach
+        let pathDetails;
+        let problems = [];
         
-        if (pathResult.rows.length === 0) {
+        try {
+            // First try proper learning paths table
+            const pathResult = await pool.query(`
+                SELECT * FROM learning_paths 
+                WHERE id = $1 AND is_active = true
+            `, [pathId]);
+            
+            if (pathResult.rows.length > 0) {
+                const path = pathResult.rows[0];
+                
+                // Get problems in this learning path
+                const problemsResult = await pool.query(`
+                    SELECT 
+                        p.*,
+                        lps.step_order,
+                        lps.description as step_description,
+                        lps.learning_objectives,
+                        lps.estimated_time_minutes,
+                        lps.is_optional,
+                        c.name as category_name
+                    FROM learning_path_steps lps
+                    JOIN problems p ON lps.problem_id = p.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE lps.learning_path_id = $1
+                    ORDER BY lps.step_order
+                `, [pathId]);
+                
+                problems = problemsResult.rows.map(problem => ({
+                    id: problem.id,
+                    numeric_id: problem.numeric_id,
+                    problem_numeric_id: problem.numeric_id, // Frontend expects this
+                    title: problem.title,
+                    slug: problem.slug,
+                    difficulty: problem.difficulty,
+                    description: problem.description,
+                    category: problem.category_name,
+                    stepOrder: problem.step_order,
+                    stepDescription: problem.step_description,
+                    learningObjectives: problem.learning_objectives || [],
+                    estimatedTimeMinutes: problem.estimated_time_minutes || 30,
+                    isOptional: problem.is_optional || false,
+                    acceptance_rate: problem.acceptance_rate
+                }));
+                
+                pathDetails = {
+                    id: path.id,
+                    name: path.name,
+                    title: path.name,
+                    description: path.description,
+                    difficulty_level: path.difficulty_level,
+                    estimated_hours: path.estimated_hours,
+                    prerequisites: path.prerequisites || [],
+                    skills_learned: path.skills_learned || []
+                };
+            } else {
+                throw new Error('Learning path not found in learning_paths table');
+            }
+        } catch (dbError) {
+            console.log('⚠️ Learning paths table not found, using category-based fallback for ID:', pathId);
+            
+            // Fallback: Map pathId to category and get problems from that category
+            const categoryMappings = {
+                '1': 'basic-queries',      // SQL Fundamentals -> Basic Queries
+                '2': 'aggregation',        // Data Analysis -> Aggregation  
+                '3': 'window-functions',   // Advanced Analytics -> Window Functions
+                '4': 'joins',
+                '5': 'subqueries',
+                '6': 'advanced-topics'
+            };
+            
+            const categorySlug = categoryMappings[pathId];
+            if (categorySlug) {
+                try {
+                    // Get category details
+                    const categoryResult = await pool.query(`
+                        SELECT * FROM categories WHERE slug = $1
+                    `, [categorySlug]);
+                    
+                    if (categoryResult.rows.length > 0) {
+                        const category = categoryResult.rows[0];
+                        
+                        // Get problems for this category
+                        const problemsResult = await pool.query(`
+                            SELECT p.*, c.name as category_name
+                            FROM problems p
+                            LEFT JOIN categories c ON p.category_id = c.id
+                            WHERE p.category_id = $1 AND p.is_active = true
+                            ORDER BY p.numeric_id
+                        `, [category.id]);
+                        
+                        problems = problemsResult.rows.map((problem, index) => ({
+                            id: problem.id,
+                            numeric_id: problem.numeric_id,
+                            problem_numeric_id: problem.numeric_id, // Frontend expects this
+                            title: problem.title,
+                            slug: problem.slug,
+                            difficulty: problem.difficulty,
+                            description: problem.description,
+                            category: problem.category_name,
+                            stepOrder: index + 1,
+                            stepDescription: `Problem ${index + 1} in ${category.name}`,
+                            learningObjectives: [`Master ${category.name} concepts`],
+                            estimatedTimeMinutes: 30,
+                            isOptional: false,
+                            acceptance_rate: problem.acceptance_rate
+                        }));
+                        
+                        const difficultyMap = {
+                            'basic-queries': 'Beginner',
+                            'joins': 'Beginner', 
+                            'aggregation': 'Intermediate',
+                            'subqueries': 'Intermediate',
+                            'window-functions': 'Advanced',
+                            'advanced-topics': 'Advanced'
+                        };
+                        
+                        pathDetails = {
+                            id: parseInt(pathId),
+                            name: category.name,
+                            title: category.name,
+                            description: category.description || `Master ${category.name} through hands-on problems`,
+                            difficulty_level: difficultyMap[categorySlug] || 'Intermediate',
+                            estimated_hours: Math.max(2, Math.ceil(problems.length * 0.5)),
+                            prerequisites: difficultyMap[categorySlug] === 'Beginner' ? [] : ['Basic SQL Knowledge'],
+                            skills_learned: [category.name, 'SQL', 'Database Querying']
+                        };
+                    }
+                } catch (categoryError) {
+                    console.log('⚠️ Category lookup failed, using hardcoded fallback');
+                    throw new Error('Category not found');
+                }
+            } else {
+                throw new Error('Invalid path ID');
+            }
+        }
+        
+        if (!pathDetails) {
             return res.status(404).json({ error: 'Learning path not found' });
         }
         
-        const path = pathResult.rows[0];
-        
-        // Get problems in this learning path
-        const problemsResult = await pool.query(`
-            SELECT 
-                p.*,
-                lps.step_order,
-                lps.description as step_description,
-                lps.learning_objectives,
-                lps.estimated_time_minutes,
-                lps.is_optional,
-                c.name as category_name
-            FROM learning_path_steps lps
-            JOIN problems p ON lps.problem_id = p.id
-            LEFT JOIN categories c ON p.category_id = c.id
-            WHERE lps.learning_path_id = $1
-            ORDER BY lps.step_order
-        `, [pathId]);
-        
-        const problems = problemsResult.rows.map(problem => ({
-            id: problem.id,
-            numeric_id: problem.numeric_id,
-            title: problem.title,
-            slug: problem.slug,
-            difficulty: problem.difficulty,
-            description: problem.description,
-            category: problem.category_name,
-            stepOrder: problem.step_order,
-            stepDescription: problem.step_description,
-            learningObjectives: problem.learning_objectives || [],
-            estimatedTimeMinutes: problem.estimated_time_minutes || 30,
-            isOptional: problem.is_optional || false,
-            acceptance_rate: problem.acceptance_rate
-        }));
+        console.log('✅ Found learning path with', problems.length, 'problems');
         
         res.json({
-            id: path.id,
-            title: path.name,
-            description: path.description,
-            difficulty_level: path.difficulty_level,
-            estimated_hours: path.estimated_hours,
-            prerequisites: path.prerequisites || [],
-            skills_learned: path.skills_learned || [],
-            problems: problems,
+            ...pathDetails,
+            steps: problems, // Frontend expects 'steps'
+            problems: problems, // Also provide 'problems' for compatibility
             totalProblems: problems.length,
             completedProblems: 0 // TODO: Get from user progress
         });
