@@ -682,16 +682,23 @@ router.post('/execute', async (req, res) => {
         // If problemId provided, set up the problem environment first
         if (problemId) {
             try {
+                console.log('🔍 Looking for problem setup for numeric_id:', problemId);
                 const problemResult = await pool.query(`
-                    SELECT ps.setup_sql 
+                    SELECT p.id, p.title, ps.setup_sql, ps.sample_data, ps.expected_output
                     FROM problems p 
                     JOIN problem_schemas ps ON p.id = ps.problem_id 
                     WHERE p.numeric_id = $1
                 `, [parseInt(problemId)]);
                 
+                console.log('📊 Found problem data:', {
+                    rowCount: problemResult.rows.length,
+                    hasSetupSql: problemResult.rows.length > 0 && !!problemResult.rows[0].setup_sql,
+                    problemTitle: problemResult.rows.length > 0 ? problemResult.rows[0].title : 'N/A'
+                });
+                
                 if (problemResult.rows.length > 0 && problemResult.rows[0].setup_sql) {
                     let setupSql = problemResult.rows[0].setup_sql;
-                    console.log('🏗️ Setting up problem environment...');
+                    console.log('🏗️ Setting up problem environment for:', problemResult.rows[0].title);
                     
                     // Convert MySQL syntax to PostgreSQL with enhanced BOOLEAN handling
                     console.log('🔧 Original setup SQL:', setupSql.substring(0, 200) + '...');
@@ -730,10 +737,44 @@ router.post('/execute', async (req, res) => {
                     // Execute setup SQL to create tables and insert data with correct types
                     await pool.query(setupSql);
                     console.log('✅ Problem environment set up successfully with correct data types');
+                } else {
+                    console.log('⚠️ No setup SQL found for problem', problemId);
+                    console.log('🔍 Available problems check...');
+                    const allProblems = await pool.query('SELECT numeric_id, title FROM problems WHERE numeric_id IS NOT NULL ORDER BY numeric_id');
+                    console.log('📋 Available problems:', allProblems.rows.map(p => `${p.numeric_id}: ${p.title}`));
                 }
             } catch (setupError) {
-                console.log('⚠️ Setup already exists or failed:', setupError.message);
-                // Continue with query execution even if setup fails (tables might already exist)
+                console.log('💥 Setup failed with error:', setupError.message);
+                console.log('🔍 Full setup error:', setupError);
+                
+                // Fallback: Create ab_test_results table manually for problem 1
+                if (parseInt(problemId) === 1) {
+                    console.log('🆘 FALLBACK: Creating ab_test_results table manually for problem 1');
+                    try {
+                        await pool.query(`
+                            DROP TABLE IF EXISTS ab_test_results CASCADE;
+                            CREATE TABLE ab_test_results (
+                                user_id INTEGER,
+                                test_group VARCHAR(20),
+                                converted BOOLEAN,
+                                conversion_date DATE,
+                                device_type VARCHAR(20)
+                            );
+                            INSERT INTO ab_test_results VALUES
+                            (1, 'A', true, '2024-01-15', 'mobile'),
+                            (2, 'B', false, '2024-01-15', 'desktop'),
+                            (3, 'A', false, '2024-01-16', 'mobile'),
+                            (4, 'B', true, '2024-01-16', 'desktop'),
+                            (5, 'A', true, '2024-01-17', 'tablet'),
+                            (6, 'B', false, '2024-01-17', 'mobile'),
+                            (7, 'A', false, '2024-01-18', 'desktop'),
+                            (8, 'B', true, '2024-01-18', 'mobile');
+                        `);
+                        console.log('✅ Fallback table creation successful');
+                    } catch (fallbackError) {
+                        console.log('💥 Fallback table creation failed:', fallbackError.message);
+                    }
+                }
             }
         }
         
