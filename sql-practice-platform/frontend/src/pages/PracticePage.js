@@ -527,17 +527,16 @@ Write a SQL query that analyzes the customer and order data to find customers wh
       console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
-        // Try to get the error message from the response
+        // Get the error message from the response
+        let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
           console.error('❌ API Error Response:', errorData);
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || errorData.error || 'Unknown error'}`);
+          errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseError) {
-          // If we can't parse the error response, use the status
-          const errorText = await response.text();
-          console.error('❌ API Error Text:', errorText);
-          throw new Error(`HTTP error! status: ${response.status}, text: ${errorText}`);
+          console.error('❌ Failed to parse error response:', parseError);
         }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();

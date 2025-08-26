@@ -695,11 +695,14 @@ router.post('/execute', async (req, res) => {
                     
                     // Convert MySQL syntax to PostgreSQL
                     setupSql = setupSql
-                        .replace(/TINYINT\(\d+\)/g, 'SMALLINT')  // TINYINT(1) -> SMALLINT
-                        .replace(/TINYINT/g, 'SMALLINT')         // TINYINT -> SMALLINT
+                        .replace(/TINYINT\(\d+\)/g, 'BOOLEAN')   // TINYINT(1) -> BOOLEAN 
+                        .replace(/TINYINT/g, 'SMALLINT')         // TINYINT -> SMALLINT (only for non-sized TINYINT)
                         .replace(/AUTO_INCREMENT/g, 'SERIAL')    // AUTO_INCREMENT -> SERIAL
                         .replace(/ENGINE=\w+/g, '')             // Remove ENGINE clauses
                         .replace(/DEFAULT CHARSET=\w+/g, '');   // Remove CHARSET clauses
+                    
+                    // Drop existing table if it exists (to recreate with correct data types)
+                    await pool.query('DROP TABLE IF EXISTS ab_test_results CASCADE');
                     
                     // Execute setup SQL to create tables and insert data
                     await pool.query(setupSql);
