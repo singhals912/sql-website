@@ -198,7 +198,27 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
         }
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Failed to register user' });
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            detail: error.detail
+        });
+        
+        // More specific error messages for debugging
+        if (error.code === '23505') {
+            res.status(400).json({ error: 'User already exists' });
+        } else if (error.code === '42P01') {
+            res.status(500).json({ error: 'Database table missing - please contact support' });
+        } else {
+            res.status(500).json({ 
+                error: 'Failed to register user',
+                ...(process.env.NODE_ENV === 'development' && { 
+                    debug: error.message,
+                    code: error.code 
+                })
+            });
+        }
     }
 });
 
@@ -755,6 +775,48 @@ router.get('/verification-status/:userId', async (req, res) => {
     } catch (error) {
         console.error('Verification status error:', error);
         res.status(500).json({ error: 'Failed to check verification status' });
+    }
+});
+
+// Debug endpoint to test system health
+router.get('/debug/health', async (req, res) => {
+    try {
+        console.log('Health check started');
+        
+        // Test database connection
+        const dbTest = await pool.query('SELECT NOW()');
+        console.log('Database connection: OK');
+        
+        // Test email service
+        let emailServiceStatus = 'Not available';
+        try {
+            const testOTP = generateOTP();
+            emailServiceStatus = testOTP ? 'Available (OTP generated)' : 'Failed to generate OTP';
+        } catch (emailError) {
+            emailServiceStatus = `Error: ${emailError.message}`;
+        }
+        console.log('Email service status:', emailServiceStatus);
+        
+        // Test JWT secret
+        const jwtStatus = JWT_SECRET && JWT_SECRET.length > 10 ? 'Available' : 'Missing/Invalid';
+        console.log('JWT secret status:', jwtStatus);
+        
+        res.json({
+            success: true,
+            status: {
+                database: 'Connected',
+                emailService: emailServiceStatus,
+                jwtSecret: jwtStatus,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Health check failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 
