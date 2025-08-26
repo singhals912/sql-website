@@ -2,8 +2,15 @@
 // This centralizes all environment-specific settings
 
 const config = {
-  // API Configuration
-  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api',
+  // API Configuration - force correct Railway URL in production
+  API_BASE_URL: (() => {
+    const envUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api';
+    // Fix incorrect Railway URL missing -d4d1 suffix
+    if (envUrl.includes('sql-website-production.up.railway.app')) {
+      return envUrl.replace('sql-website-production.up.railway.app', 'sql-website-production-d4d1.up.railway.app');
+    }
+    return envUrl;
+  })(),
   
   // App Information
   APP_NAME: process.env.REACT_APP_NAME || 'SQL Practice Platform',
