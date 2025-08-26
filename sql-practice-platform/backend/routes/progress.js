@@ -115,7 +115,7 @@ router.get('/overview', async (req, res) => {
              COUNT(*) as total,
              COUNT(CASE WHEN upp.status = 'completed' THEN 1 END) as completed
       FROM problems p
-      LEFT JOIN user_problem_progress upp ON p.id = upp.problem_id AND upp.session_id = $1
+      LEFT JOIN user_problem_progress upp ON (p.id = upp.problem_id OR p.numeric_id = upp.problem_numeric_id) AND upp.session_id = $1
       WHERE p.is_active = true
       GROUP BY p.difficulty
     `, [sessionId]);
@@ -126,15 +126,17 @@ router.get('/overview', async (req, res) => {
              COUNT(CASE WHEN upp.status = 'completed' THEN 1 END) as completed
       FROM problems p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN user_problem_progress upp ON p.id = upp.problem_id AND upp.session_id = $1
+      LEFT JOIN user_problem_progress upp ON (p.id = upp.problem_id OR p.numeric_id = upp.problem_numeric_id) AND upp.session_id = $1
       WHERE p.is_active = true
       GROUP BY c.name
     `, [sessionId]);
     
     const recentResult = await pool.query(`
-      SELECT p.title, p.numeric_id, upp.status, upp.last_attempt_at, upp.total_attempts
+      SELECT COALESCE(p.title, 'Problem ' || upp.problem_numeric_id) as title, 
+             COALESCE(p.numeric_id, upp.problem_numeric_id) as numeric_id, 
+             upp.status, upp.last_attempt_at, upp.total_attempts
       FROM user_problem_progress upp
-      JOIN problems p ON upp.problem_id = p.id
+      LEFT JOIN problems p ON (upp.problem_id = p.id OR upp.problem_numeric_id = p.numeric_id)
       WHERE upp.session_id = $1
       ORDER BY upp.last_attempt_at DESC
       LIMIT 10
@@ -201,12 +203,13 @@ router.get('/detailed', async (req, res) => {
     }
     
     // Get all progress records with problem details for the new ProgressPage format
+    // Use LEFT JOIN and handle both problem_id and problem_numeric_id columns
     const progressResult = await pool.query(`
       SELECT 
-        p.numeric_id as problem_numeric_id,
-        p.title,
-        p.difficulty,
-        p.id as problem_id,
+        COALESCE(p.numeric_id, upp.problem_numeric_id) as problem_numeric_id,
+        COALESCE(p.title, 'Problem ' || upp.problem_numeric_id) as title,
+        COALESCE(p.difficulty, 'unknown') as difficulty,
+        COALESCE(p.id, upp.problem_id) as problem_id,
         upp.status,
         upp.total_attempts,
         upp.correct_attempts,
@@ -214,7 +217,7 @@ router.get('/detailed', async (req, res) => {
         upp.last_attempt_at,
         upp.first_attempt_at
       FROM user_problem_progress upp
-      JOIN problems p ON upp.problem_id = p.id
+      LEFT JOIN problems p ON (upp.problem_id = p.id OR upp.problem_numeric_id = p.numeric_id)
       WHERE upp.session_id = $1
       ORDER BY upp.last_attempt_at DESC NULLS LAST
     `, [sessionId]);

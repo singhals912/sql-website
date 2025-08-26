@@ -9,12 +9,35 @@ const educationalFeedback = require('../services/educationalFeedback');
 // Helper function to track progress
 async function trackProgress(sessionId, problemId, problemNumericId, success, executionTime) {
     console.log('DEBUG trackProgress called with:', { sessionId, problemId, problemNumericId, success, executionTime });
-    if (!sessionId || !problemId) {
-        console.log('DEBUG trackProgress: Missing sessionId or problemId, skipping');
+    if (!sessionId || (!problemId && !problemNumericId)) {
+        console.log('DEBUG trackProgress: Missing sessionId or both problemId/problemNumericId, skipping');
         return;
     }
     
     try {
+        // First, ensure the table exists
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS user_problem_progress (
+                    id SERIAL PRIMARY KEY,
+                    session_id VARCHAR(255) NOT NULL,
+                    problem_id INTEGER,
+                    problem_numeric_id INTEGER,
+                    status VARCHAR(50) DEFAULT 'attempted',
+                    total_attempts INTEGER DEFAULT 0,
+                    correct_attempts INTEGER DEFAULT 0,
+                    best_execution_time_ms INTEGER,
+                    first_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    UNIQUE(session_id, problem_id),
+                    UNIQUE(session_id, problem_numeric_id)
+                )
+            `);
+        } catch (tableError) {
+            console.log('DEBUG trackProgress: Table creation failed, continuing:', tableError.message);
+        }
+        
         // Get or create progress record - check by both problem_id and numeric_id
         const existingProgress = await pool.query(`
             SELECT * FROM user_problem_progress 

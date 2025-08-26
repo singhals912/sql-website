@@ -668,16 +668,99 @@ router.get('/auto-recover', async (req, res) => {
     }
 });
 
+// Helper function to track progress
+async function trackProgress(sessionId, problemId, success, executionTime) {
+    console.log('🎯 DEBUG trackProgress called with:', { sessionId, problemId, success, executionTime });
+    if (!sessionId || !problemId) {
+        console.log('🎯 DEBUG trackProgress: Missing sessionId or problemId, skipping');
+        return;
+    }
+    
+    try {
+        // First, ensure the table exists
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS user_problem_progress (
+                    id SERIAL PRIMARY KEY,
+                    session_id VARCHAR(255) NOT NULL,
+                    problem_id INTEGER,
+                    problem_numeric_id INTEGER,
+                    status VARCHAR(50) DEFAULT 'attempted',
+                    total_attempts INTEGER DEFAULT 0,
+                    correct_attempts INTEGER DEFAULT 0,
+                    best_execution_time_ms INTEGER,
+                    first_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    UNIQUE(session_id, problem_numeric_id)
+                )
+            `);
+        } catch (tableError) {
+            console.log('🎯 DEBUG trackProgress: Table creation failed, continuing:', tableError.message);
+        }
+        
+        // Get the problem's database ID for proper referencing
+        let dbProblemId = problemId;
+        const problemResult = await pool.query(`SELECT id FROM problems WHERE numeric_id = $1`, [parseInt(problemId)]);
+        if (problemResult.rows.length > 0) {
+            dbProblemId = problemResult.rows[0].id;
+        }
+        
+        // Get existing progress record
+        const existingProgress = await pool.query(`
+            SELECT * FROM user_problem_progress 
+            WHERE session_id = $1 AND problem_numeric_id = $2
+        `, [sessionId, problemId]);
+        
+        if (existingProgress.rows.length === 0) {
+            // Create new progress record
+            await pool.query(`
+                INSERT INTO user_problem_progress 
+                (session_id, problem_id, problem_numeric_id, status, total_attempts, correct_attempts, best_execution_time_ms, first_attempt_at)
+                VALUES ($1, $2, $3, $4, 1, $5, $6, CURRENT_TIMESTAMP)
+            `, [sessionId, dbProblemId, problemId, success ? 'completed' : 'attempted', success ? 1 : 0, success ? executionTime : null]);
+            console.log('🎯 DEBUG trackProgress: Created new progress record for problem', problemId);
+        } else {
+            // Update existing progress
+            const current = existingProgress.rows[0];
+            const newCorrectAttempts = current.correct_attempts + (success ? 1 : 0);
+            const newTotalAttempts = current.total_attempts + 1;
+            const newStatus = success ? 'completed' : (current.status === 'completed' ? 'completed' : 'attempted');
+            const newBestTime = success && executionTime ? 
+                (current.best_execution_time_ms ? Math.min(current.best_execution_time_ms, executionTime) : executionTime) :
+                current.best_execution_time_ms;
+            
+            await pool.query(`
+                UPDATE user_problem_progress 
+                SET total_attempts = $1, correct_attempts = $2, status = $3, 
+                    best_execution_time_ms = $4, last_attempt_at = CURRENT_TIMESTAMP,
+                    completed_at = CASE WHEN $5 AND completed_at IS NULL THEN CURRENT_TIMESTAMP ELSE completed_at END,
+                    problem_id = $7
+                WHERE session_id = $6 AND problem_numeric_id = $8
+            `, [newTotalAttempts, newCorrectAttempts, newStatus, newBestTime, success, sessionId, dbProblemId, problemId]);
+            console.log('🎯 DEBUG trackProgress: Updated existing progress record for problem', problemId);
+        }
+        
+        console.log('🎯 ✅ Progress tracked successfully for session:', sessionId, 'problem:', problemId);
+    } catch (error) {
+        console.error('🎯 ❌ Error tracking progress:', error);
+    }
+}
+
 // Execute SQL query endpoint
 router.post('/execute', async (req, res) => {
     try {
         const { query, problemId, dialect = 'postgresql' } = req.body;
+        const sessionId = req.headers['x-session-id'];
         
         if (!query) {
             return res.status(400).json({ error: 'Query is required' });
         }
         
         console.log('🔍 Executing SQL query for problem', problemId);
+        
+        // Start timing for execution
+        const startTime = Date.now();
         
         // If problemId provided, set up the problem environment first
         if (problemId) {
@@ -953,6 +1036,10 @@ router.post('/execute', async (req, res) => {
             message = '✅ Query executed successfully.';
         }
         
+        // Track progress for this attempt
+        const executionTime = Date.now() - startTime;
+        await trackProgress(sessionId, problemId, success, executionTime);
+        
         res.json({
             success: true,
             results: result.rows,
@@ -966,6 +1053,11 @@ router.post('/execute', async (req, res) => {
         
     } catch (error) {
         console.error('SQL execution error:', error);
+        
+        // Track progress for failed attempt
+        const executionTime = Date.now() - startTime;
+        await trackProgress(sessionId, problemId, false, executionTime);
+        
         res.status(400).json({
             success: false,
             error: 'SQL execution failed',
