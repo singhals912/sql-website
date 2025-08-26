@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { authRateLimit } = require('../middleware/authMiddleware');
+const { generateOTP, sendVerificationEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 // Ensure JWT secret exists and is secure
 const JWT_SECRET = (() => {
@@ -77,8 +78,24 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
                     full_name VARCHAR(255),
                     is_active BOOLEAN DEFAULT true,
                     is_verified BOOLEAN DEFAULT false,
+                    verification_token VARCHAR(255),
+                    verification_expires TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Create email verification table
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS email_verifications (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    email VARCHAR(255) NOT NULL,
+                    otp VARCHAR(10) NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    verified BOOLEAN DEFAULT false,
+                    attempts INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
         } catch (tableError) {
@@ -108,22 +125,39 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
         
         const user = result.rows[0];
         
-        // Create JWT token
-        const token = jwt.sign(
-            { userId: user.id, username: user.username, email: user.email },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        // Generate OTP and send verification email
+        const otp = generateOTP();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes expiry
         
+        try {
+            // Store OTP in database
+            await pool.query(`
+                INSERT INTO email_verifications (user_id, email, otp, expires_at)
+                VALUES ($1, $2, $3, $4)
+            `, [user.id, email, otp, expiresAt]);
+            
+            // Send verification email
+            const emailResult = await sendVerificationEmail(email, otp, fullName);
+            
+            if (!emailResult.success) {
+                console.error('Failed to send verification email:', emailResult.error);
+                // Continue with registration even if email fails
+            }
+        } catch (otpError) {
+            console.error('OTP generation failed:', otpError);
+            // Continue with registration even if OTP fails
+        }
+        
+        // Don't create JWT token immediately - require email verification first
         res.status(201).json({
-            token,
-            user: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                fullName: user.full_name
-            },
-            message: 'User registered successfully'
+            success: true,
+            message: 'Account created successfully! Please check your email for a verification code.',
+            requiresVerification: true,
+            userId: user.id,
+            email: user.email,
+            // For development - remove in production
+            ...(process.env.NODE_ENV === 'development' && { devOTP: otp })
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -271,15 +305,18 @@ router.post('/forgot-password', authRateLimit, async (req, res) => {
             [user.id, resetToken, expiresAt]
         );
         
-        // TODO: Send email with reset link
-        // For now, we'll log it (REMOVE IN PRODUCTION)
-        console.log(`📧 Password reset for ${email}: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`);
+        // Send password reset email
+        const emailResult = await sendPasswordResetEmail(email, resetToken, user.full_name);
+        
+        if (!emailResult.success) {
+            console.error('Failed to send password reset email:', emailResult.error);
+        }
         
         res.json({ 
             success: true,
             message: 'If an account with that email exists, a password reset link has been sent.',
             // TODO: Remove this debug info in production
-            resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+            ...(process.env.NODE_ENV === 'development' && { resetToken })
         });
     } catch (error) {
         console.error('Forgot password error:', error);
@@ -475,6 +512,212 @@ router.put('/profile', async (req, res) => {
         } else {
             res.status(500).json({ error: 'Failed to update profile' });
         }
+    }
+});
+
+// Verify email with OTP
+router.post('/verify-email', authRateLimit, async (req, res) => {
+    try {
+        const { userId, otp } = req.body;
+        
+        if (!userId || !otp) {
+            return res.status(400).json({ error: 'User ID and OTP are required' });
+        }
+        
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ error: 'Invalid OTP format' });
+        }
+        
+        // Find valid OTP
+        const otpResult = await pool.query(`
+            SELECT ev.id, ev.user_id, ev.attempts, u.username, u.email, u.full_name
+            FROM email_verifications ev
+            JOIN users u ON ev.user_id = u.id
+            WHERE ev.user_id = $1 
+            AND ev.otp = $2 
+            AND ev.expires_at > NOW() 
+            AND ev.verified = false
+            AND ev.attempts < 5
+            AND u.is_active = true
+        `, [userId, otp]);
+        
+        if (otpResult.rows.length === 0) {
+            // Increment attempts for failed verification
+            await pool.query(`
+                UPDATE email_verifications 
+                SET attempts = attempts + 1 
+                WHERE user_id = $1 AND verified = false
+            `, [userId]);
+            
+            return res.status(400).json({ 
+                error: 'Invalid or expired OTP. Please check your code or request a new one.' 
+            });
+        }
+        
+        const verification = otpResult.rows[0];
+        
+        // Mark email as verified and user as verified
+        await pool.query('BEGIN');
+        
+        try {
+            await pool.query(`
+                UPDATE email_verifications 
+                SET verified = true 
+                WHERE id = $1
+            `, [verification.id]);
+            
+            await pool.query(`
+                UPDATE users 
+                SET is_verified = true, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $1
+            `, [verification.user_id]);
+            
+            await pool.query('COMMIT');
+            
+            // Create JWT token after successful verification
+            const token = jwt.sign(
+                { userId: verification.user_id, username: verification.username, email: verification.email },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+            
+            res.json({
+                success: true,
+                message: 'Email verified successfully!',
+                token,
+                user: {
+                    id: verification.user_id,
+                    username: verification.username,
+                    email: verification.email,
+                    fullName: verification.full_name,
+                    isVerified: true
+                }
+            });
+            
+        } catch (updateError) {
+            await pool.query('ROLLBACK');
+            throw updateError;
+        }
+        
+    } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({ error: 'Failed to verify email' });
+    }
+});
+
+// Resend verification email
+router.post('/resend-verification', authRateLimit, async (req, res) => {
+    try {
+        const { userId, email } = req.body;
+        
+        if (!userId || !email) {
+            return res.status(400).json({ error: 'User ID and email are required' });
+        }
+        
+        // Check if user exists and is not already verified
+        const userResult = await pool.query(`
+            SELECT id, username, email, full_name, is_verified, is_active
+            FROM users 
+            WHERE id = $1 AND email = $2 AND is_active = true
+        `, [userId, email]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userResult.rows[0];
+        
+        if (user.is_verified) {
+            return res.status(400).json({ error: 'Email is already verified' });
+        }
+        
+        // Check recent verification attempts (rate limiting)
+        const recentAttempts = await pool.query(`
+            SELECT COUNT(*) as count
+            FROM email_verifications 
+            WHERE user_id = $1 AND created_at > NOW() - INTERVAL '5 minutes'
+        `, [userId]);
+        
+        if (parseInt(recentAttempts.rows[0].count) >= 3) {
+            return res.status(429).json({ 
+                error: 'Too many verification emails sent. Please wait 5 minutes before requesting another.' 
+            });
+        }
+        
+        // Generate new OTP
+        const otp = generateOTP();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        
+        // Invalidate old OTPs and create new one
+        await pool.query('BEGIN');
+        
+        try {
+            await pool.query(`
+                UPDATE email_verifications 
+                SET verified = true 
+                WHERE user_id = $1 AND verified = false
+            `, [userId]);
+            
+            await pool.query(`
+                INSERT INTO email_verifications (user_id, email, otp, expires_at)
+                VALUES ($1, $2, $3, $4)
+            `, [userId, email, otp, expiresAt]);
+            
+            await pool.query('COMMIT');
+            
+            // Send verification email
+            const emailResult = await sendVerificationEmail(email, otp, user.full_name);
+            
+            if (!emailResult.success) {
+                console.error('Failed to send verification email:', emailResult.error);
+                return res.status(500).json({ error: 'Failed to send verification email' });
+            }
+            
+            res.json({
+                success: true,
+                message: 'Verification email sent! Please check your inbox.',
+                // For development - remove in production
+                ...(process.env.NODE_ENV === 'development' && { devOTP: otp })
+            });
+            
+        } catch (dbError) {
+            await pool.query('ROLLBACK');
+            throw dbError;
+        }
+        
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({ error: 'Failed to resend verification email' });
+    }
+});
+
+// Check verification status
+router.get('/verification-status/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const userResult = await pool.query(`
+            SELECT is_verified, email 
+            FROM users 
+            WHERE id = $1 AND is_active = true
+        `, [userId]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userResult.rows[0];
+        
+        res.json({
+            success: true,
+            isVerified: user.is_verified,
+            email: user.email
+        });
+        
+    } catch (error) {
+        console.error('Verification status error:', error);
+        res.status(500).json({ error: 'Failed to check verification status' });
     }
 });
 

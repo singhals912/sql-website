@@ -94,7 +94,14 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        return { success: true, message: data.message };
+        return { 
+          success: true, 
+          message: data.message,
+          requiresVerification: data.requiresVerification,
+          userId: data.userId,
+          email: data.email,
+          fullName: fullName
+        };
       } else {
         return { success: false, error: data.error };
       }

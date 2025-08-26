@@ -70,19 +70,42 @@ function RegisterPage() {
       );
 
       if (result.success) {
-        setSuccess('Account created successfully! Redirecting...');
-        setFormData({
-          email: '',
-          password: '',
-          confirmPassword: '',
-          username: '',
-          fullName: ''
-        });
-        
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 2000);
+        if (result.requiresVerification) {
+          setSuccess('Account created successfully! Redirecting to email verification...');
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            username: '',
+            fullName: ''
+          });
+          
+          // Redirect to email verification after 1.5 seconds
+          setTimeout(() => {
+            navigate('/verify-email', {
+              state: {
+                userId: result.userId,
+                email: result.email,
+                fullName: result.fullName,
+                from: location.state?.from
+              }
+            });
+          }, 1500);
+        } else {
+          // Legacy flow - direct login
+          setSuccess('Account created successfully! Redirecting...');
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            username: '',
+            fullName: ''
+          });
+          
+          setTimeout(() => {
+            navigate(from, { replace: true });
+          }, 2000);
+        }
       } else {
         setError(result.error);
       }
