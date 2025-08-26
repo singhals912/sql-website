@@ -93,10 +93,17 @@ try {
 }
 
 try {
-  app.use('/api/auth', require('./routes/auth-simple'));
-  console.log('✅ Auth route loaded (simple version)');
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✅ Auth route loaded');
 } catch (e) {
   console.error('❌ Auth route failed:', e.message);
+  // Fallback to simple auth
+  try {
+    app.use('/api/auth', require('./routes/auth-simple'));
+    console.log('✅ Auth route loaded (fallback simple version)');
+  } catch (e2) {
+    console.error('❌ Both auth routes failed:', e2.message);
+  }
 }
 
 try {

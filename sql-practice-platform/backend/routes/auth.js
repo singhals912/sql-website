@@ -162,59 +162,26 @@ router.post('/register', authRateLimit, validateRegistration, async (req, res) =
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes expiry
         
-        let emailVerificationEnabled = false;
-        try {
-            // Store OTP in database
-            await pool.query(`
-                INSERT INTO email_verifications (user_id, email, otp, expires_at)
-                VALUES ($1, $2, $3, $4)
-            `, [user.id, email, otp, expiresAt]);
-            
-            // Send verification email
-            const emailResult = await sendVerificationEmail(email, otp, fullName);
-            
-            if (emailResult.success) {
-                emailVerificationEnabled = true;
-            } else {
-                console.error('Failed to send verification email:', emailResult.error);
-            }
-        } catch (otpError) {
-            console.error('OTP generation/storage failed:', otpError);
-        }
+        // Simplified registration - always create JWT token immediately
+        console.log('Creating JWT token for user:', user.id);
+        const token = jwt.sign(
+            { userId: user.id, username: user.username, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
         
-        if (emailVerificationEnabled) {
-            // Email verification is working - require verification
-            res.status(201).json({
-                success: true,
-                message: 'Account created successfully! Please check your email for a verification code.',
-                requiresVerification: true,
-                userId: user.id,
+        res.status(201).json({
+            success: true,
+            message: 'Account created successfully!',
+            requiresVerification: false,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
                 email: user.email,
-                // For development - remove in production
-                ...(process.env.NODE_ENV === 'development' && { devOTP: otp })
-            });
-        } else {
-            // Email verification failed - create JWT token directly (fallback)
-            console.log('Email verification unavailable, creating immediate JWT token');
-            const token = jwt.sign(
-                { userId: user.id, username: user.username, email: user.email },
-                JWT_SECRET,
-                { expiresIn: '7d' }
-            );
-            
-            res.status(201).json({
-                success: true,
-                message: 'Account created successfully!',
-                requiresVerification: false,
-                token,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    fullName: user.full_name
-                }
-            });
-        }
+                fullName: user.full_name
+            }
+        });
     } catch (error) {
         console.error('Registration error:', error);
         console.error('Error stack:', error.stack);
