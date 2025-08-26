@@ -470,4 +470,185 @@ router.post('/create-tables', async (req, res) => {
     }
 });
 
+// AUTOMATIC RECOVERY: Check and restore data if missing
+router.get('/auto-recover', async (req, res) => {
+    try {
+        console.log('🔍 Checking database health...');
+        
+        // Check if problems exist
+        const problemCheck = await pool.query('SELECT COUNT(*) FROM problems WHERE is_active = true');
+        const problemCount = parseInt(problemCheck.rows[0].count);
+        
+        if (problemCount < 50) { // If less than 50 problems, restore
+            console.log('⚠️ Database has only', problemCount, 'problems. Initiating recovery...');
+            
+            // Recreate tables if needed
+            try {
+                await pool.query('SELECT 1 FROM categories LIMIT 1');
+                await pool.query('SELECT 1 FROM problems LIMIT 1');
+                await pool.query('SELECT 1 FROM problem_schemas LIMIT 1');
+            } catch (tableError) {
+                console.log('🏗️ Recreating missing tables...');
+                
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS categories (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        slug VARCHAR(255) UNIQUE NOT NULL,
+                        description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS problems (
+                        id SERIAL PRIMARY KEY,
+                        title VARCHAR(500) NOT NULL,
+                        slug VARCHAR(500) UNIQUE NOT NULL,
+                        description TEXT,
+                        difficulty VARCHAR(50),
+                        category_id INTEGER REFERENCES categories(id),
+                        is_active BOOLEAN DEFAULT true,
+                        numeric_id INTEGER,
+                        solution_sql TEXT,
+                        expected_output TEXT,
+                        tags TEXT[],
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS problem_schemas (
+                        id SERIAL PRIMARY KEY,
+                        problem_id INTEGER REFERENCES problems(id),
+                        schema_name VARCHAR(255),
+                        setup_sql TEXT,
+                        teardown_sql TEXT,
+                        sample_data TEXT,
+                        expected_output TEXT,
+                        solution_sql TEXT,
+                        sql_dialect VARCHAR(50) DEFAULT 'postgresql',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+            }
+            
+            // Auto-import data
+            const fs = require('fs');
+            const path = require('path');
+            const exportFile = path.join(__dirname, '..', 'problems-export-2025-08-25.json');
+            
+            if (fs.existsSync(exportFile)) {
+                const exportData = JSON.parse(fs.readFileSync(exportFile, 'utf8'));
+                
+                // Clear and restore categories
+                await pool.query('TRUNCATE categories RESTART IDENTITY CASCADE');
+                const categories = [
+                    { name: 'A/B Testing', slug: 'a/b-testing', description: 'A/B Testing problems' },
+                    { name: 'Advanced Topics', slug: 'advanced-topics', description: 'Advanced SQL concepts' },
+                    { name: 'Aggregation', slug: 'aggregation', description: 'GROUP BY, HAVING, aggregate functions' },
+                    { name: 'Basic Queries', slug: 'basic-queries', description: 'Fundamental SQL operations' },
+                    { name: 'Energy Analytics', slug: 'energy-analytics', description: 'Energy Analytics problems' },
+                    { name: 'Fraud Detection', slug: 'fraud-detection', description: 'Fraud Detection problems' },
+                    { name: 'Joins', slug: 'joins', description: 'INNER, LEFT, RIGHT, FULL OUTER joins' },
+                    { name: 'Recommendation Systems', slug: 'recommendation-systems', description: 'Recommendation Systems problems' },
+                    { name: 'Subqueries', slug: 'subqueries', description: 'Nested queries and subqueries' },
+                    { name: 'Supply Chain', slug: 'supply-chain', description: 'Supply Chain problems' },
+                    { name: 'Time Analysis', slug: 'time-analysis', description: 'Time-based analysis' },
+                    { name: 'Window Functions', slug: 'window-functions', description: 'OVER, PARTITION BY, window functions' }
+                ];
+                
+                for (let i = 0; i < categories.length; i++) {
+                    await pool.query(
+                        'INSERT INTO categories (id, name, slug, description, created_at) VALUES ($1, $2, $3, $4, $5)',
+                        [i + 1, categories[i].name, categories[i].slug, categories[i].description, new Date()]
+                    );
+                }
+                
+                // Restore problems
+                await pool.query('TRUNCATE problems RESTART IDENTITY CASCADE');
+                const categoryMapping = {
+                    'a/b-testing': 1, 'advanced-topics': 2, 'aggregation': 3, 'basic-queries': 4,
+                    'energy-analytics': 5, 'fraud-detection': 6, 'joins': 7, 'recommendation-systems': 8,
+                    'subqueries': 9, 'supply-chain': 10, 'time-analysis': 11, 'window-functions': 12
+                };
+                
+                for (let i = 0; i < Math.min(exportData.problems.length, 70); i++) {
+                    const problem = exportData.problems[i];
+                    const newId = i + 1;
+                    
+                    let categoryId = 4;
+                    const exportCategory = exportData.categories.find(c => c.id === problem.category_id);
+                    if (exportCategory && categoryMapping[exportCategory.slug]) {
+                        categoryId = categoryMapping[exportCategory.slug];
+                    }
+                    
+                    await pool.query(`
+                        INSERT INTO problems (
+                            id, title, slug, description, difficulty, 
+                            category_id, is_active, numeric_id, created_at,
+                            solution_sql, expected_output
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    `, [
+                        newId, problem.title, problem.slug, 
+                        problem.description || 'Problem description', problem.difficulty,
+                        categoryId, true, problem.numeric_id, new Date(),
+                        problem.solution_sql || '', '[]'
+                    ]);
+                }
+                
+                // Restore schemas
+                const problemMap = {};
+                for (let i = 0; i < Math.min(exportData.problems.length, 70); i++) {
+                    problemMap[exportData.problems[i].id] = i + 1;
+                }
+                
+                await pool.query('TRUNCATE problem_schemas RESTART IDENTITY CASCADE');
+                for (const schema of exportData.problem_schemas || []) {
+                    const mappedProblemId = problemMap[schema.problem_id];
+                    if (mappedProblemId) {
+                        await pool.query(`
+                            INSERT INTO problem_schemas (
+                                problem_id, schema_name, setup_sql, teardown_sql, 
+                                sample_data, expected_output, solution_sql, created_at
+                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        `, [
+                            mappedProblemId, schema.schema_name || 'default',
+                            schema.setup_sql || '', schema.teardown_sql || '',
+                            schema.sample_data || '', '[]',
+                            schema.solution_sql || '', new Date()
+                        ]);
+                    }
+                }
+            }
+            
+            const finalCount = await pool.query('SELECT COUNT(*) FROM problems');
+            console.log('✅ Auto-recovery complete:', finalCount.rows[0].count, 'problems restored');
+            
+            res.json({
+                success: true,
+                message: 'Database auto-recovery completed',
+                restored: true,
+                problemCount: parseInt(finalCount.rows[0].count)
+            });
+        } else {
+            console.log('✅ Database healthy with', problemCount, 'problems');
+            res.json({
+                success: true,
+                message: 'Database is healthy',
+                restored: false,
+                problemCount: problemCount
+            });
+        }
+        
+    } catch (error) {
+        console.error('💥 Auto-recovery failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Auto-recovery failed',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

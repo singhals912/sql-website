@@ -114,7 +114,51 @@ function ProblemsPage() {
         throw new Error('No problems returned from API');
       }
     } catch (err) {
-      console.error('💥 Failed to fetch from Railway, using fallback data:', err);
+      console.error('💥 Failed to fetch from Railway, attempting auto-recovery:', err);
+      
+      // Try auto-recovery before falling back to mock data
+      try {
+        console.log('🔄 Attempting automatic database recovery...');
+        const recoveryResponse = await fetch(sqlUrl('auto-recover'));
+        const recoveryData = await recoveryResponse.json();
+        
+        if (recoveryData.success && recoveryData.restored) {
+          console.log('✅ Auto-recovery successful, retrying fetch...');
+          // Retry the original request after recovery
+          const retryResponse = await fetch(sqlUrl(`problems?${params}`));
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            if (retryData && retryData.problems && retryData.problems.length > 0) {
+              const formattedProblems = retryData.problems.map(p => {
+                let acceptanceRate = parseFloat(p.acceptance_rate) || 0;
+                if (acceptanceRate === 0) {
+                  if (p.difficulty === 'Easy' || p.difficulty === 'easy') {
+                    acceptanceRate = 60 + Math.random() * 30;
+                  } else if (p.difficulty === 'Medium' || p.difficulty === 'medium') {
+                    acceptanceRate = 30 + Math.random() * 30;
+                  } else if (p.difficulty === 'Hard' || p.difficulty === 'hard') {
+                    acceptanceRate = 10 + Math.random() * 25;
+                  } else {
+                    acceptanceRate = 45 + Math.random() * 20;
+                  }
+                }
+                return {
+                  ...p,
+                  category: p.category_name || p.category,
+                  acceptance: `${acceptanceRate.toFixed(1)}%`,
+                  solved: Math.random() > 0.7
+                };
+              });
+              console.log('✅ Successfully recovered and loaded', formattedProblems.length, 'problems');
+              setProblems(formattedProblems);
+              setError(null);
+              return; // Success - don't fall back to mock data
+            }
+          }
+        }
+      } catch (recoveryError) {
+        console.error('❌ Auto-recovery failed:', recoveryError);
+      }
       
       // Fallback to mock data when Railway API fails
       const mockProblems = [
