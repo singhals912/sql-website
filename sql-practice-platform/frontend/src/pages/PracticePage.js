@@ -95,7 +95,21 @@ function PracticePage() {
         console.log('DEBUG: Problem numeric_id:', data.problem?.numeric_id);
         console.log('DEBUG: Full problem object:', JSON.stringify(data.problem));
         setProblem(data.problem);
-        setSchema(data.schema || data.problem?.schema);
+        
+        // Process schema and parse JSON strings
+        let processedSchema = data.schema || data.problem?.schema;
+        if (processedSchema && processedSchema.expected_output) {
+          try {
+            // Parse expected_output if it's a string
+            if (typeof processedSchema.expected_output === 'string') {
+              processedSchema.expected_output = JSON.parse(processedSchema.expected_output);
+            }
+          } catch (error) {
+            console.error('Failed to parse expected_output:', error);
+            processedSchema.expected_output = [];
+          }
+        }
+        setSchema(processedSchema);
         // Don't reset sqlQuery here - let the caching useEffect handle it
         setShowSolution(false); // Reset solution visibility
         // Clear results and errors when loading a new problem
@@ -802,7 +816,7 @@ Write a SQL query that analyzes the customer and order data to find customers wh
                     )}
 
                     {/* Expected Output */}
-                    {schema && schema.expected_output && schema.expected_output.length > 0 && (
+                    {schema && schema.expected_output && Array.isArray(schema.expected_output) && schema.expected_output.length > 0 && (
                       <div>
                         <h4 className="text-gray-900 dark:text-white font-semibold mb-4">Expected Output</h4>
                         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -810,11 +824,11 @@ Write a SQL query that analyzes the customer and order data to find customers wh
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                               <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                  {Object.keys(schema.expected_output[0]).map((column) => (
+                                  {schema.expected_output[0] ? Object.keys(schema.expected_output[0]).map((column) => (
                                     <th key={column} className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                       {column}
                                     </th>
-                                  ))}
+                                  )) : null}
                                 </tr>
                               </thead>
                               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
