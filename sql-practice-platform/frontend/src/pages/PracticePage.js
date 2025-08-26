@@ -81,9 +81,12 @@ function PracticePage() {
   };
 
   const loadProblem = useCallback(async (id) => {
+    console.log('🔍 LOADING PROBLEM:', id, 'URL:', sqlUrl(`problems/${id}`));
     try {
       const response = await fetch(sqlUrl(`problems/${id}`));
+      console.log('📡 PROBLEM API Response:', response.status, response.statusText);
       const data = await response.json();
+      console.log('📊 PROBLEM API Data:', data);
       
       if (response.ok) {
         console.log('DEBUG: Successfully loaded problem data:', data);
@@ -608,6 +611,19 @@ Write a SQL query that analyzes the customer and order data to find customers wh
   // If no problem is selected, redirect to problems page
   if (!problemId) {
     return <Navigate to="/problems" replace />;
+  }
+
+  // Debug loading state
+  if (!problem) {
+    console.log('🔍 PROBLEM PAGE: No problem data loaded yet, problemId:', problemId);
+    return (
+      <div className="h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading problem {problemId}...</p>
+        </div>
+      </div>
+    );
   }
   // Problem mode - show the full problem-solving interface
   return (
