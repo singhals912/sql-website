@@ -338,11 +338,42 @@ router.post('/track', async (req, res) => {
       return res.status(400).json({ error: 'Session ID and problem ID required' });
     }
     
-    // Get or create progress record
-    const existingProgress = await pool.query(
-      'SELECT * FROM user_problem_progress WHERE session_id = $1 AND problem_id = $2',
-      [sessionId, problemId]
-    );
+    // Get or create progress record with auto table creation
+    let existingProgress;
+    try {
+      existingProgress = await pool.query(
+        'SELECT * FROM user_problem_progress WHERE session_id = $1 AND problem_id = $2',
+        [sessionId, problemId]
+      );
+    } catch (dbError) {
+      console.log('⚠️ user_problem_progress table not found, creating...');
+      
+      // Create the progress table if it doesn't exist
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_problem_progress (
+          id SERIAL PRIMARY KEY,
+          session_id VARCHAR(255) NOT NULL,
+          problem_id INTEGER NOT NULL,
+          problem_numeric_id INTEGER,
+          status VARCHAR(50) DEFAULT 'attempted',
+          total_attempts INTEGER DEFAULT 0,
+          correct_attempts INTEGER DEFAULT 0,
+          best_execution_time_ms INTEGER,
+          first_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          last_attempt_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP,
+          UNIQUE(session_id, problem_id)
+        )
+      `);
+      
+      console.log('✅ user_problem_progress table created');
+      
+      // Retry the query
+      existingProgress = await pool.query(
+        'SELECT * FROM user_problem_progress WHERE session_id = $1 AND problem_id = $2',
+        [sessionId, problemId]
+      );
+    }
     
     if (existingProgress.rows.length === 0) {
       // Create new progress record

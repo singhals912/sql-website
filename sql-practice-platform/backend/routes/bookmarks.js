@@ -217,15 +217,43 @@ router.get('/check/:problemId', async (req, res) => {
             return res.status(404).json({ error: 'Problem not found' });
         }
         
-        const result = await pool.query(
-            'SELECT bookmark_type FROM user_bookmarks WHERE session_id = $1 AND problem_id = $2',
-            [sessionId, problemUuid]
-        );
-        
-        res.json({ 
-            bookmarked: result.rows.length > 0,
-            bookmarkType: result.rows[0]?.bookmark_type || null
-        });
+        // Try to query bookmarks table, fallback if it doesn't exist
+        try {
+            const result = await pool.query(
+                'SELECT bookmark_type FROM user_bookmarks WHERE session_id = $1 AND problem_id = $2',
+                [sessionId, problemUuid]
+            );
+            
+            res.json({ 
+                bookmarked: result.rows.length > 0,
+                bookmarkType: result.rows[0]?.bookmark_type || null
+            });
+        } catch (dbError) {
+            console.log('⚠️ user_bookmarks table not found, creating and returning false');
+            
+            // Create the table if it doesn't exist
+            try {
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS user_bookmarks (
+                        id SERIAL PRIMARY KEY,
+                        session_id VARCHAR(255) NOT NULL,
+                        problem_id INTEGER NOT NULL,
+                        bookmark_type VARCHAR(50) DEFAULT 'favorite',
+                        notes TEXT,
+                        tags TEXT[],
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(session_id, problem_id)
+                    )
+                `);
+                console.log('✅ user_bookmarks table created');
+            } catch (createError) {
+                console.log('⚠️ Could not create user_bookmarks table:', createError.message);
+            }
+            
+            // Return false for first-time access
+            res.json({ bookmarked: false, bookmarkType: null });
+        }
     } catch (error) {
         console.error('Error checking bookmark:', error);
         res.status(500).json({ error: 'Failed to check bookmark' });
@@ -249,15 +277,50 @@ router.post('/:problemId', async (req, res) => {
             return res.status(404).json({ error: 'Problem not found' });
         }
         
-        // Insert or update bookmark
-        await pool.query(`
-            INSERT INTO user_bookmarks (session_id, problem_id, bookmark_type, notes, tags)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (session_id, problem_id) 
-            DO UPDATE SET bookmark_type = $3, notes = $4, tags = $5, created_at = CURRENT_TIMESTAMP
-        `, [sessionId, problemUuid, bookmarkType, notes, tags]);
-        
-        res.json({ success: true, bookmarked: true, bookmarkType });
+        // Insert or update bookmark with table creation fallback
+        try {
+            await pool.query(`
+                INSERT INTO user_bookmarks (session_id, problem_id, bookmark_type, notes, tags)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (session_id, problem_id) 
+                DO UPDATE SET bookmark_type = $3, notes = $4, tags = $5, created_at = CURRENT_TIMESTAMP
+            `, [sessionId, problemUuid, bookmarkType, notes, tags]);
+            
+            res.json({ success: true, bookmarked: true, bookmarkType });
+        } catch (dbError) {
+            console.log('⚠️ Bookmark insert failed, creating table and retrying');
+            
+            try {
+                // Create table if it doesn't exist
+                await pool.query(`
+                    CREATE TABLE IF NOT EXISTS user_bookmarks (
+                        id SERIAL PRIMARY KEY,
+                        session_id VARCHAR(255) NOT NULL,
+                        problem_id INTEGER NOT NULL,
+                        bookmark_type VARCHAR(50) DEFAULT 'favorite',
+                        notes TEXT,
+                        tags TEXT[],
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(session_id, problem_id)
+                    )
+                `);
+                
+                // Retry the insert
+                await pool.query(`
+                    INSERT INTO user_bookmarks (session_id, problem_id, bookmark_type, notes, tags)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (session_id, problem_id) 
+                    DO UPDATE SET bookmark_type = $3, notes = $4, tags = $5, created_at = CURRENT_TIMESTAMP
+                `, [sessionId, problemUuid, bookmarkType, notes, tags]);
+                
+                console.log('✅ Bookmark table created and bookmark saved');
+                res.json({ success: true, bookmarked: true, bookmarkType });
+            } catch (createError) {
+                console.log('💥 Failed to create bookmark table:', createError.message);
+                res.status(500).json({ error: 'Failed to save bookmark' });
+            }
+        }
     } catch (error) {
         console.error('Error adding bookmark:', error);
         res.status(500).json({ error: 'Failed to add bookmark' });
