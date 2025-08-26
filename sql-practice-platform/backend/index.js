@@ -93,8 +93,8 @@ try {
 }
 
 try {
-  app.use('/api/auth', require('./routes/auth'));
-  console.log('✅ Auth route loaded');
+  app.use('/api/auth', require('./routes/auth-simple'));
+  console.log('✅ Auth route loaded (simple version)');
 } catch (e) {
   console.error('❌ Auth route failed:', e.message);
 }
