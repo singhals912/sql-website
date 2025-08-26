@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
+const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
 
 console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM - v2.1 WITH FORGOT PASSWORD');
 
@@ -101,13 +102,26 @@ router.post('/register', async (req, res) => {
             
             const user = result.rows[0];
             
+            // Send verification email
+            try {
+                const emailResult = await sendVerificationEmail(email, otp, user.full_name);
+                
+                if (emailResult.success) {
+                    console.log('📧 Verification email sent successfully to:', email);
+                } else {
+                    console.error('📧 Failed to send verification email:', emailResult.error);
+                }
+            } catch (emailError) {
+                console.error('📧 Email sending error:', emailError);
+            }
+            
             console.log('🎉 Registration successful with users table - OTP required');
             return res.status(201).json({
                 success: true,
-                message: 'Account created! Please check your email for verification code.',
+                message: 'Account created! Please check your email for the 6-digit verification code.',
                 requiresVerification: true,
                 userId: user[idColumn],
-                // For development - remove in production
+                // For development - include OTP for testing
                 ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
             });
             
@@ -159,13 +173,26 @@ router.post('/register', async (req, res) => {
                 
                 const user = result.rows[0];
                 
+                // Send verification email
+                try {
+                    const emailResult = await sendVerificationEmail(email, otp, user.full_name);
+                    
+                    if (emailResult.success) {
+                        console.log('📧 Verification email sent successfully to:', email);
+                    } else {
+                        console.error('📧 Failed to send verification email:', emailResult.error);
+                    }
+                } catch (emailError) {
+                    console.error('📧 Email sending error:', emailError);
+                }
+                
                 console.log('🎉 Registration successful with app_users table - OTP required');
                 return res.status(201).json({
                     success: true,
-                    message: 'Account created! Please check your email for verification code.',
+                    message: 'Account created! Please check your email for the 6-digit verification code.',
                     requiresVerification: true,
                     userId: user.id,
-                    // For development - remove in production
+                    // For development - include OTP for testing
                     ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
                 });
                 
@@ -267,16 +294,28 @@ router.post('/login', async (req, res) => {
             
             console.log('✅ Password reset token created for:', email);
             
-            // For now, return the reset link in the response (in production, send email)
-            const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+            // Send password reset email
+            try {
+                const emailResult = await sendPasswordResetEmail(email, resetToken, user.full_name || user.fullName);
+                
+                if (emailResult.success) {
+                    console.log('📧 Password reset email sent successfully to:', email);
+                } else {
+                    console.error('📧 Failed to send password reset email:', emailResult.error);
+                }
+            } catch (emailError) {
+                console.error('📧 Email sending error:', emailError);
+            }
             
             return res.json({ 
                 success: true,
-                message: 'Password reset link has been generated.',
+                message: 'If an account with that email exists, a password reset link has been sent to your email.',
                 forgotPassword: true,
-                // For development - remove in production
-                resetLink,
-                devToken: resetToken
+                // For development - include link for testing
+                ...(process.env.NODE_ENV === 'development' && { 
+                    devResetLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`,
+                    devToken: resetToken 
+                })
             });
         }
         
@@ -471,15 +510,25 @@ router.post('/forgot-password', async (req, res) => {
         
         console.log('✅ Password reset token created for:', email);
         
-        // For now, return the reset link in the response (in production, send email)
-        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        // Send password reset email
+        try {
+            const emailResult = await sendPasswordResetEmail(email, resetToken, user.full_name || user.fullName);
+            
+            if (emailResult.success) {
+                console.log('📧 Password reset email sent successfully to:', email);
+            } else {
+                console.error('📧 Failed to send password reset email:', emailResult.error);
+            }
+        } catch (emailError) {
+            console.error('📧 Email sending error:', emailError);
+        }
         
         res.json({ 
             success: true,
-            message: 'Password reset link has been sent to your email.',
-            // For development - remove in production
+            message: 'If an account with that email exists, a password reset link has been sent to your email.',
+            // For development - include link for testing
             ...(process.env.NODE_ENV === 'development' && { 
-                resetLink,
+                devResetLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`,
                 devToken: resetToken 
             })
         });
@@ -707,11 +756,24 @@ router.post('/resend-verification', async (req, res) => {
             [otp, otpExpiry, userId]
         );
         
+        // Send verification email
+        try {
+            const emailResult = await sendVerificationEmail(user.email, otp, user.full_name);
+            
+            if (emailResult.success) {
+                console.log('📧 New verification email sent successfully to:', user.email);
+            } else {
+                console.error('📧 Failed to send verification email:', emailResult.error);
+            }
+        } catch (emailError) {
+            console.error('📧 Email sending error:', emailError);
+        }
+        
         console.log('✅ New verification code generated for:', user.email);
         res.json({
             success: true,
             message: 'A new verification code has been sent to your email.',
-            // For development - remove in production
+            // For development - include OTP for testing
             ...(process.env.NODE_ENV === 'development' && { devOtp: otp })
         });
         
