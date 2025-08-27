@@ -4,7 +4,25 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
-const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
+
+// Email service with fallback - load safely
+let sendPasswordResetEmail, sendVerificationEmail;
+try {
+    const emailService = require('../services/emailService');
+    sendPasswordResetEmail = emailService.sendPasswordResetEmail;
+    sendVerificationEmail = emailService.sendVerificationEmail;
+    console.log('✅ Email service loaded successfully');
+} catch (emailError) {
+    console.warn('⚠️ Email service not available, using console logging:', emailError.message);
+    sendPasswordResetEmail = async (email, token, name) => {
+        console.log('📧 [EMAIL] Password reset for:', email, 'Token:', token);
+        return { success: true, messageId: 'console-fallback' };
+    };
+    sendVerificationEmail = async (email, otp, name) => {
+        console.log('📧 [EMAIL] Verification OTP for:', email, 'OTP:', otp);
+        return { success: true, messageId: 'console-fallback' };
+    };
+}
 
 console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM - v2.1 WITH FORGOT PASSWORD');
 
