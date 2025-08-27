@@ -56,7 +56,7 @@ const BookmarksList = ({ bookmarkType = null, className = '' }) => {
             'challenging': 'challenging'
           };
           const backendType = typeMap[selectedType] || selectedType;
-          filteredBookmarks = allBookmarks.filter(bookmark => bookmark.type === backendType);
+          filteredBookmarks = allBookmarks.filter(bookmark => bookmark.bookmark_type === backendType);
         }
         
         setBookmarks(filteredBookmarks);
