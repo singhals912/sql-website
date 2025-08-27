@@ -4,14 +4,11 @@ import { recommendationsUrl } from '../config/environment';
 
 const RecommendationDashboard = () => {
   const [recommendations, setRecommendations] = useState([]);
-  const [dailyChallenge, setDailyChallenge] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllRecommendations, setShowAllRecommendations] = useState(false);
 
   useEffect(() => {
     fetchRecommendations();
-    fetchDailyChallenge();
 
     // Listen for progress updates
     const handleProgressUpdate = () => {
@@ -40,7 +37,6 @@ const RecommendationDashboard = () => {
       });
       if (response.data.success) {
         setRecommendations(response.data.data.recommendations);
-        setUserProfile(response.data.data.userProfile);
       }
     } catch (error) {
       console.error('Error fetching recommendations:', error);
@@ -49,19 +45,6 @@ const RecommendationDashboard = () => {
     }
   };
 
-  const fetchDailyChallenge = async () => {
-    try {
-      const sessionId = localStorage.getItem('sql_practice_session_id');
-      const response = await axios.get(recommendationsUrl('daily-challenge'), {
-        headers: { 'x-session-id': sessionId }
-      });
-      if (response.data.success) {
-        setDailyChallenge(response.data.data.challenge);
-      }
-    } catch (error) {
-      console.error('Error fetching daily challenge:', error);
-    }
-  };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -72,16 +55,6 @@ const RecommendationDashboard = () => {
     }
   };
 
-  const getSkillLevelEmoji = (level) => {
-    const levels = {
-      'Newcomer': '🌱',
-      'Beginner': '📚',
-      'Intermediate': '💪',
-      'Advanced': '🚀',
-      'Expert': '👑'
-    };
-    return levels[level] || '🌱';
-  };
 
   if (loading) {
     return (
@@ -93,66 +66,6 @@ const RecommendationDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Your SQL Learning Journey</h2>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">{getSkillLevelEmoji(userProfile?.skill_level)}</span>
-                <span className="text-lg font-semibold text-slate-700 dark:text-slate-300">{userProfile?.skill_level || 'Newcomer'}</span>
-              </div>
-              <div className="h-6 w-px bg-slate-300 dark:bg-slate-600"></div>
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                {userProfile?.completed_problems || 0} problems solved
-              </div>
-            </div>
-          </div>
-          <div className="text-right flex flex-col items-end space-y-2">
-            <button 
-              onClick={() => fetchRecommendations()}
-              disabled={loading}
-              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50"
-            >
-              {loading ? '⟳' : '↻'} Refresh
-            </button>
-            <div>
-              <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">{userProfile?.success_rate || 0}%</div>
-              <div className="text-sm text-slate-600 dark:text-slate-400">Success Rate</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Daily Challenge Section */}
-      {dailyChallenge && (
-        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="text-3xl">🔥</div>
-              <div>
-                <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100">Daily Challenge</h3>
-                <p className="text-sm text-amber-700 dark:text-amber-300">Keep your streak alive!</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">#{dailyChallenge.numeric_id}</div>
-              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${getDifficultyColor(dailyChallenge.difficulty)}`}>
-                {dailyChallenge.difficulty}
-              </span>
-            </div>
-          </div>
-          <h4 className="text-lg font-semibold text-amber-900 dark:text-amber-100 mb-2">{dailyChallenge.title}</h4>
-          <p className="text-sm text-amber-700 dark:text-amber-300 line-clamp-2 mb-4">{dailyChallenge.description.substring(0, 120)}...</p>
-          <button 
-            className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
-            onClick={() => window.location.href = `/practice/${dailyChallenge.id}`}
-          >
-            Start Challenge
-          </button>
-        </div>
-      )}
 
       {/* Recommendations Section - Compact */}
       <div>
@@ -165,8 +78,21 @@ const RecommendationDashboard = () => {
           </span>
         </div>
 
-        <div className="grid gap-3">
-          {(showAllRecommendations ? recommendations : recommendations.slice(0, 3)).map((problem, index) => (
+        {recommendations.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-4xl mb-4">🎯</div>
+            <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Ready to start your SQL journey?</h4>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">Complete a few problems to get personalized recommendations!</p>
+            <button 
+              onClick={() => window.location.href = '/problems'}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+            >
+              Browse All Problems
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {(showAllRecommendations ? recommendations : recommendations.slice(0, 3)).map((problem, index) => (
             <div 
               key={problem.id}
               className="group bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 p-4"
@@ -242,23 +168,6 @@ const RecommendationDashboard = () => {
               }
             </button>
           )}
-        </div>
-
-        {recommendations.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎯</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Ready to start your SQL journey?
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Complete a few problems to get personalized recommendations!
-            </p>
-            <button 
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-              onClick={() => window.location.href = '/problems'}
-            >
-              Browse All Problems
-            </button>
           </div>
         )}
       </div>
