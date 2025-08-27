@@ -184,6 +184,13 @@ try {
   console.error('❌ Emergency schema recovery route failed:', e.message);
 }
 
+try {
+  app.use('/api/emergency', require('./routes/emergency-schemas-51-60'));
+  console.log('✅ Emergency schemas 51-60 route loaded');
+} catch (e) {
+  console.error('❌ Emergency schemas 51-60 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
