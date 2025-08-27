@@ -48,7 +48,14 @@ app.get('/api/health', (req, res) => {
         status: 'ok', 
         message: 'Server is running', 
         timestamp: new Date().toISOString(),
-        version: 'v2.3-with-forgot-password-workaround'
+        version: 'v2.4-debug-email-config',
+        emailConfig: {
+            hasSmtpHost: !!process.env.SMTP_HOST,
+            hasSmtpUser: !!process.env.SMTP_USER,
+            hasSmtpPass: !!process.env.SMTP_PASS,
+            smtpHost: process.env.SMTP_HOST || 'NOT_SET',
+            emailFrom: process.env.EMAIL_FROM || 'NOT_SET'
+        }
     });
 });
 
