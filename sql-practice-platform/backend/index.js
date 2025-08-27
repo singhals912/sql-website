@@ -252,10 +252,17 @@ try {
 }
 
 try {
-  app.use('/api/auth', require('./routes/auth-minimal-test'));
-  console.log('✅ Auth route (minimal test) loaded');
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✅ Auth route (with SendGrid SDK) loaded');
 } catch (e) {
   console.error('❌ Auth route failed:', e.message);
+  // Fallback to minimal test
+  try {
+    app.use('/api/auth', require('./routes/auth-minimal-test'));
+    console.log('✅ Auth route (minimal test fallback) loaded');
+  } catch (fallbackError) {
+    console.error('❌ Auth fallback also failed:', fallbackError.message);
+  }
 }
 
 try {
