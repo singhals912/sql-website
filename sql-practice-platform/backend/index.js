@@ -163,6 +163,13 @@ try {
   console.error('❌ Fix problems 21-30 route failed:', e.message);
 }
 
+try {
+  app.use('/api/fix', require('./routes/fix-problems-31-40'));
+  console.log('✅ Fix problems 31-40 route loaded');
+} catch (e) {
+  console.error('❌ Fix problems 31-40 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
