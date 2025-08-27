@@ -5,24 +5,78 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 
-// Email service with fallback - load safely
-let sendPasswordResetEmail, sendVerificationEmail;
-try {
-    const emailService = require('../services/emailService');
-    sendPasswordResetEmail = emailService.sendPasswordResetEmail;
-    sendVerificationEmail = emailService.sendVerificationEmail;
-    console.log('✅ Email service loaded successfully');
-} catch (emailError) {
-    console.warn('⚠️ Email service not available, using console logging:', emailError.message);
-    sendPasswordResetEmail = async (email, token, name) => {
-        console.log('📧 [EMAIL] Password reset for:', email, 'Token:', token);
-        return { success: true, messageId: 'console-fallback' };
-    };
-    sendVerificationEmail = async (email, otp, name) => {
-        console.log('📧 [EMAIL] Verification OTP for:', email, 'OTP:', otp);
-        return { success: true, messageId: 'console-fallback' };
-    };
-}
+// Email service - inline to avoid import issues
+const sendEmail = async (to, subject, htmlContent, textContent) => {
+    try {
+        // Try to use nodemailer if available and configured
+        if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+            const nodemailer = require('nodemailer');
+            
+            const transporter = nodemailer.createTransporter({
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT) || 587,
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
+
+            const result = await transporter.sendMail({
+                from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
+                to: to,
+                subject: subject,
+                html: htmlContent,
+                text: textContent
+            });
+            
+            console.log('📧 Email sent successfully to:', to);
+            return { success: true, messageId: result.messageId };
+        }
+    } catch (error) {
+        console.error('📧 Email sending failed:', error.message);
+    }
+    
+    // Fallback: console logging
+    console.log('📧 [EMAIL] To:', to);
+    console.log('📧 [EMAIL] Subject:', subject);
+    console.log('📧 [EMAIL] Content:', textContent);
+    return { success: true, messageId: 'console-fallback' };
+};
+
+const sendPasswordResetEmail = async (email, resetToken, userName) => {
+    const resetLink = `${process.env.FRONTEND_URL || 'https://datasql.pro'}/reset-password?token=${resetToken}`;
+    const subject = 'Reset Your SQL Practice Platform Password';
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Reset - SQL Practice Platform</h2>
+            <p>Hello${userName ? ' ' + userName : ''}!</p>
+            <p>You requested a password reset for your account.</p>
+            <p><a href="${resetLink}" style="background: #4c51bf; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p>
+            <p>Or copy this link: ${resetLink}</p>
+            <p>This link expires in 1 hour.</p>
+        </div>
+    `;
+    const textContent = `Password Reset - SQL Practice Platform\n\nHello${userName ? ' ' + userName : ''}!\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`;
+    
+    return await sendEmail(email, subject, htmlContent, textContent);
+};
+
+const sendVerificationEmail = async (email, otp, userName) => {
+    const subject = 'Verify Your SQL Practice Platform Account';
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Email Verification - SQL Practice Platform</h2>
+            <p>Hello${userName ? ' ' + userName : ''}!</p>
+            <p>Your verification code is:</p>
+            <div style="background: #4c51bf; color: white; font-size: 24px; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">${otp}</div>
+            <p>This code expires in 10 minutes.</p>
+        </div>
+    `;
+    const textContent = `Email Verification - SQL Practice Platform\n\nHello${userName ? ' ' + userName : ''}!\n\nYour verification code: ${otp}\n\nThis code expires in 10 minutes.`;
+    
+    return await sendEmail(email, subject, htmlContent, textContent);
+};
 
 console.log('🚀 Loading FIXED ADAPTIVE AUTH SYSTEM - v2.1 WITH FORGOT PASSWORD');
 
