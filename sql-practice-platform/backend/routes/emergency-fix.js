@@ -736,9 +736,9 @@ ORDER BY avg_salary DESC;`;
             }
             
             // Create contextual solution based on schema type
-            let solutionSql = '';
+            let contextualSolutionSql = '';
             if (selectedSchema === contextualSchemas.social_media) {
-                solutionSql = `-- Social Media Engagement Analysis
+                contextualSolutionSql = `-- Social Media Engagement Analysis
 SELECT 
     content_type,
     COUNT(*) as total_posts,

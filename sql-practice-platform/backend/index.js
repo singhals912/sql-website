@@ -91,12 +91,13 @@ try {
   console.error('❌ Import-complete route failed:', e.message);
 }
 
-try {
-  app.use('/api/emergency-fix', require('./routes/emergency-fix'));
-  console.log('✅ Emergency-fix route loaded');
-} catch (e) {
-  console.error('❌ Emergency-fix route failed:', e.message);
-}
+// Temporarily disabled due to syntax conflicts
+// try {
+//   app.use('/api/emergency-fix', require('./routes/emergency-fix'));
+//   console.log('✅ Emergency-fix route loaded');
+// } catch (e) {
+//   console.error('❌ Emergency-fix route failed:', e.message);
+// }
 
 try {
   app.use('/api/learning-paths', require('./routes/learning-paths'));

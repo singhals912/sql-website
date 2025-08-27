@@ -672,8 +672,8 @@ router.post('/import-local-complete', async (req, res) => {
         console.log(`✅ Inserted ${schemasInserted} schemas`);
         
         // Reset sequences
-        await pool.query('SELECT setval(\\'problems_id_seq\\', (SELECT MAX(id) FROM problems))');
-        await pool.query('SELECT setval(\\'categories_id_seq\\', (SELECT MAX(id) FROM categories))');
+        await pool.query(`SELECT setval('problems_id_seq', (SELECT MAX(id) FROM problems))`);
+        await pool.query(`SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))`);
         
         // Final verification
         const finalProblems = await pool.query('SELECT COUNT(*) FROM problems');

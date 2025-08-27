@@ -187,7 +187,13 @@ const ProgressVisualization = () => {
     return <div className="text-center p-8">No progress data available</div>;
   }
 
-  const { overallProgress, skillMastery, achievements, streakInfo, weeklyProgress } = dashboardData;
+  const { 
+    overallProgress = {}, 
+    skillMastery = [], 
+    achievements = [], 
+    streakInfo = {}, 
+    weeklyProgress = [] 
+  } = dashboardData || {};
 
   return (
     <div className="space-y-6">
@@ -220,10 +226,10 @@ const ProgressVisualization = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
               <div className="text-center">
-                <CircularProgress percentage={parseFloat(overallProgress.completion_percentage)}>
+                <CircularProgress percentage={parseFloat(overallProgress.completion_percentage || 0)}>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {overallProgress.completion_percentage}%
+                      {overallProgress.completion_percentage || 0}%
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">Complete</div>
                   </div>
@@ -233,7 +239,7 @@ const ProgressVisualization = () => {
                     Overall Progress
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {overallProgress.problems_completed} of {overallProgress.total_problems_available} problems
+                    {overallProgress.problems_completed || 0} of {overallProgress.total_problems_available || 0} problems
                   </div>
                 </div>
               </div>
