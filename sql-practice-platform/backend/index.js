@@ -81,33 +81,18 @@ app.post('/api/health/forgot-password', async (req, res) => {
         console.log('  SMTP_PASS length:', process.env.SMTP_PASS ? process.env.SMTP_PASS.length : 'NOT_SET');
         console.log('  EMAIL_FROM:', process.env.EMAIL_FROM);
         
-        if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-            console.log('📧 All SMTP credentials present, attempting to send email...');
+        // Try SendGrid SDK first (more reliable)
+        if (process.env.SMTP_PASS && process.env.SMTP_PASS.startsWith('SG.')) {
+            console.log('📧 Trying SendGrid SDK approach...');
             try {
-                const nodemailer = require('nodemailer');
-                console.log('📧 Nodemailer loaded successfully');
+                const sgMail = require('@sendgrid/mail');
+                sgMail.setApiKey(process.env.SMTP_PASS);
                 
-                const transporter = nodemailer.createTransporter({
-                    host: process.env.SMTP_HOST,
-                    port: parseInt(process.env.SMTP_PORT) || 587,
-                    secure: process.env.SMTP_SECURE === 'true',
-                    auth: {
-                        user: process.env.SMTP_USER,
-                        pass: process.env.SMTP_PASS
-                    }
-                });
-                console.log('📧 Transporter created');
-
-                // Verify connection
-                console.log('📧 Verifying SMTP connection...');
-                await transporter.verify();
-                console.log('📧 SMTP connection verified successfully');
-
-                console.log('📧 Sending email to:', email);
-                const result = await transporter.sendMail({
-                    from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
+                const msg = {
                     to: email,
+                    from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
                     subject: 'Reset Your SQL Practice Platform Password',
+                    text: `Password Reset - SQL Practice Platform\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`,
                     html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                             <h2>Password Reset - SQL Practice Platform</h2>
@@ -116,21 +101,33 @@ app.post('/api/health/forgot-password', async (req, res) => {
                             <p>Or copy this link: ${resetLink}</p>
                             <p>This link expires in 1 hour.</p>
                         </div>
-                    `,
-                    text: `Password Reset - SQL Practice Platform\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`
-                });
+                    `
+                };
                 
-                console.log('📧 ✅ Email sent successfully! MessageId:', result.messageId);
-                console.log('📧 Response:', JSON.stringify(result, null, 2));
-            } catch (emailError) {
-                console.error('📧 ❌ Email sending failed:', emailError);
-                console.error('📧 Error details:', emailError.message);
-                console.error('📧 Error code:', emailError.code);
+                console.log('📧 Sending via SendGrid SDK to:', email);
+                const result = await sgMail.send(msg);
+                console.log('📧 ✅ SendGrid SDK: Email sent successfully!', result[0].statusCode);
+                
+            } catch (sgError) {
+                console.error('📧 ❌ SendGrid SDK failed:', sgError.message);
+                console.log('📧 Falling back to nodemailer...');
+                
+                // Fallback to nodemailer
+                await sendViaNodemailer(email, resetLink);
             }
+        } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+            console.log('📧 Using nodemailer approach...');
+            await sendViaNodemailer(email, resetLink);
         } else {
             console.log('📧 [CONSOLE] Missing SMTP credentials, using console mode');
             console.log('📧 [CONSOLE] Password reset for:', email, 'Link:', resetLink);
         }
+    } catch (error) {
+        console.error('❌ Forgot password error:', error);
+        res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+});
+
         
         res.json({
             success: true,
@@ -145,6 +142,55 @@ app.post('/api/health/forgot-password', async (req, res) => {
         res.status(500).json({ error: 'Failed to process password reset request' });
     }
 });
+
+// Nodemailer function
+async function sendViaNodemailer(email, resetLink) {
+    try {
+        const nodemailer = require('nodemailer');
+        console.log('📧 Nodemailer loaded successfully');
+        
+        const transporter = nodemailer.createTransporter({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+        console.log('📧 Transporter created');
+
+        // Verify connection
+        console.log('📧 Verifying SMTP connection...');
+        await transporter.verify();
+        console.log('📧 SMTP connection verified successfully');
+
+        console.log('📧 Sending email to:', email);
+        const result = await transporter.sendMail({
+            from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
+            to: email,
+            subject: 'Reset Your SQL Practice Platform Password',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Password Reset - SQL Practice Platform</h2>
+                    <p>You requested a password reset for your account.</p>
+                    <p><a href="${resetLink}" style="background: #4c51bf; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p>
+                    <p>Or copy this link: ${resetLink}</p>
+                    <p>This link expires in 1 hour.</p>
+                </div>
+            `,
+            text: `Password Reset - SQL Practice Platform\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`
+        });
+        
+        console.log('📧 ✅ Nodemailer: Email sent successfully! MessageId:', result.messageId);
+        console.log('📧 Response:', JSON.stringify(result, null, 2));
+    } catch (emailError) {
+        console.error('📧 ❌ Nodemailer failed:', emailError);
+        console.error('📧 Error details:', emailError.message);
+        console.error('📧 Error code:', emailError.code);
+        throw emailError;
+    }
+}
 
 // Essential routes only for startup - load others after server starts
 console.log('Loading essential routes...');
