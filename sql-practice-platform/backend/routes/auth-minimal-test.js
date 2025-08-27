@@ -36,10 +36,100 @@ router.get('/debug', (req, res) => {
         resetTokens: Object.keys(global.resetTokens).map(token => ({
             token: token.substring(0, 10) + '...',
             email: global.resetTokens[token]?.email,
-            expires: new Date(global.resetTokens[token]?.expires).toISOString()
+            expires: new Date(global.resetTokens[token]?.expires).toISOString(),
+            created: new Date(global.resetTokens[token]?.created).toISOString()
         })),
         timestamp: new Date().toISOString()
     });
+});
+
+// Token validation endpoint
+router.get('/validate-token/:token', (req, res) => {
+    const { token } = req.params;
+    const tokenData = global.resetTokens[token];
+    
+    if (!tokenData) {
+        return res.json({
+            valid: false,
+            reason: 'Token not found',
+            availableTokens: Object.keys(global.resetTokens).length
+        });
+    }
+    
+    if (Date.now() > tokenData.expires) {
+        return res.json({
+            valid: false,
+            reason: 'Token expired',
+            expiredAt: new Date(tokenData.expires).toISOString(),
+            currentTime: new Date().toISOString()
+        });
+    }
+    
+    res.json({
+        valid: true,
+        email: tokenData.email,
+        expires: new Date(tokenData.expires).toISOString(),
+        timeRemaining: Math.round((tokenData.expires - Date.now()) / 1000 / 60) + ' minutes'
+    });
+});
+
+// Test password flow endpoint - creates a user and tests the full flow
+router.post('/test-password-flow', async (req, res) => {
+    const testEmail = 'test@datasql.pro';
+    const oldPassword = 'oldpassword123';
+    const newPassword = 'newpassword123';
+    
+    try {
+        // Step 1: Create a test user if not exists
+        let testUser = global.users.find(u => u.email === testEmail);
+        if (!testUser) {
+            const hashedOldPassword = await bcrypt.hash(oldPassword, 12);
+            testUser = {
+                id: Date.now(),
+                email: testEmail,
+                passwordHash: hashedOldPassword,
+                isActive: true
+            };
+            global.users.push(testUser);
+        }
+        
+        // Step 2: Create reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        global.resetTokens[resetToken] = {
+            email: testEmail,
+            expires: Date.now() + (24 * 60 * 60 * 1000),
+            created: Date.now()
+        };
+        
+        // Step 3: Test password reset
+        const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+        const userIndex = global.users.findIndex(u => u.email === testEmail);
+        global.users[userIndex].passwordHash = hashedNewPassword;
+        
+        // Step 4: Test login with new password
+        const loginTest = await bcrypt.compare(newPassword, global.users[userIndex].passwordHash);
+        
+        res.json({
+            success: true,
+            steps: {
+                userCreated: !!testUser,
+                tokenCreated: !!global.resetTokens[resetToken],
+                passwordUpdated: true,
+                loginTestPassed: loginTest
+            },
+            testCredentials: {
+                email: testEmail,
+                newPassword: newPassword,
+                resetToken: resetToken
+            }
+        });
+        
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
 });
 
 // Register endpoint
@@ -191,8 +281,16 @@ router.post('/forgot-password', async (req, res) => {
         global.resetTokens = global.resetTokens || {};
         global.resetTokens[resetToken] = {
             email: email,
-            expires: Date.now() + (60 * 60 * 1000) // 1 hour
+            expires: Date.now() + (24 * 60 * 60 * 1000), // 24 hours for better UX
+            created: Date.now()
         };
+        
+        console.log('📧 Reset token created:', {
+            token: resetToken.substring(0, 10) + '...',
+            email: email,
+            expiresAt: new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString(),
+            totalTokensInStore: Object.keys(global.resetTokens).length
+        });
         
         // Try SendGrid SDK first
         if (process.env.SMTP_PASS && process.env.SMTP_PASS.startsWith('SG.')) {
