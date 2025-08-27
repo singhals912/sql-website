@@ -107,6 +107,13 @@ try {
 }
 
 try {
+  app.use('/api/learning', require('./routes/learning'));
+  console.log('✅ Learning route loaded');
+} catch (e) {
+  console.error('❌ Learning route failed:', e.message);
+}
+
+try {
   app.use('/api/bookmarks', require('./routes/bookmarks'));
   console.log('✅ Bookmarks route loaded');
 } catch (e) {
