@@ -75,9 +75,17 @@ app.post('/api/health/forgot-password', async (req, res) => {
         const resetLink = `https://datasql.pro/reset-password?token=${resetToken}`;
         
         // Try to send email if nodemailer is available
+        console.log('🔧 EMAIL DEBUG - Environment check:');
+        console.log('  SMTP_HOST:', process.env.SMTP_HOST);
+        console.log('  SMTP_USER:', process.env.SMTP_USER);
+        console.log('  SMTP_PASS length:', process.env.SMTP_PASS ? process.env.SMTP_PASS.length : 'NOT_SET');
+        console.log('  EMAIL_FROM:', process.env.EMAIL_FROM);
+        
         if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+            console.log('📧 All SMTP credentials present, attempting to send email...');
             try {
                 const nodemailer = require('nodemailer');
+                console.log('📧 Nodemailer loaded successfully');
                 
                 const transporter = nodemailer.createTransporter({
                     host: process.env.SMTP_HOST,
@@ -88,8 +96,15 @@ app.post('/api/health/forgot-password', async (req, res) => {
                         pass: process.env.SMTP_PASS
                     }
                 });
+                console.log('📧 Transporter created');
 
-                await transporter.sendMail({
+                // Verify connection
+                console.log('📧 Verifying SMTP connection...');
+                await transporter.verify();
+                console.log('📧 SMTP connection verified successfully');
+
+                console.log('📧 Sending email to:', email);
+                const result = await transporter.sendMail({
                     from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
                     to: email,
                     subject: 'Reset Your SQL Practice Platform Password',
@@ -105,11 +120,15 @@ app.post('/api/health/forgot-password', async (req, res) => {
                     text: `Password Reset - SQL Practice Platform\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`
                 });
                 
-                console.log('📧 Password reset email sent successfully to:', email);
+                console.log('📧 ✅ Email sent successfully! MessageId:', result.messageId);
+                console.log('📧 Response:', JSON.stringify(result, null, 2));
             } catch (emailError) {
-                console.error('📧 Email sending failed:', emailError.message);
+                console.error('📧 ❌ Email sending failed:', emailError);
+                console.error('📧 Error details:', emailError.message);
+                console.error('📧 Error code:', emailError.code);
             }
         } else {
+            console.log('📧 [CONSOLE] Missing SMTP credentials, using console mode');
             console.log('📧 [CONSOLE] Password reset for:', email, 'Link:', resetLink);
         }
         
