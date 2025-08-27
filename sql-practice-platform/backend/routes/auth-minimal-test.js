@@ -1,7 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 console.log('🧪 Loading minimal auth test routes');
+
+// JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+
+// In-memory user store for demo (production should use database)
+global.users = global.users || [];
 
 // Test endpoint
 router.get('/test', (req, res) => {
@@ -9,6 +18,118 @@ router.get('/test', (req, res) => {
         message: 'Auth routes working!', 
         timestamp: new Date().toISOString() 
     });
+});
+
+// Register endpoint
+router.post('/register', async (req, res) => {
+    console.log('📝 Registration request');
+    const { username, email, password, fullName } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    
+    try {
+        // Check if user already exists
+        const existingUser = global.users.find(u => u.email === email);
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists with this email' });
+        }
+        
+        // Hash password
+        const passwordHash = await bcrypt.hash(password, 12);
+        
+        // Create user
+        const user = {
+            id: Date.now(), // Simple ID for demo
+            username: username || email.split('@')[0],
+            email,
+            passwordHash,
+            fullName: fullName || '',
+            createdAt: new Date().toISOString(),
+            isActive: true
+        };
+        
+        global.users.push(user);
+        console.log(`✅ User registered: ${email} (Total users: ${global.users.length})`);
+        
+        // Create JWT token
+        const token = jwt.sign(
+            { userId: user.id, username: user.username, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        res.status(201).json({
+            success: true,
+            message: 'Account created successfully!',
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Registration error:', error);
+        res.status(500).json({ error: 'Failed to create account' });
+    }
+});
+
+// Login endpoint
+router.post('/login', async (req, res) => {
+    console.log('🔐 Login request');
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    try {
+        // Find user
+        const user = global.users.find(u => u.email === email && u.isActive);
+        
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid email or password' });
+        }
+        
+        // Check password
+        const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        
+        if (!isValidPassword) {
+            return res.status(400).json({ error: 'Invalid email or password' });
+        }
+        
+        // Create JWT token
+        const token = jwt.sign(
+            { userId: user.id, username: user.username, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        
+        console.log(`✅ User logged in: ${email}`);
+        
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        res.status(500).json({ error: 'Failed to login' });
+    }
 });
 
 // Forgot password with SendGrid SDK
@@ -21,6 +142,9 @@ router.post('/forgot-password', async (req, res) => {
     }
     
     try {
+        // Check if user exists (for security, always return success message)
+        const userExists = global.users.find(u => u.email === email && u.isActive);
+        console.log(`🔍 User exists for ${email}:`, !!userExists);
         // Generate reset token
         const crypto = require('crypto');
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -108,13 +232,19 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ error: 'Reset token has expired' });
         }
         
-        // For demo purposes, just return success
-        // In production, hash password and update database
-        const bcrypt = require('bcryptjs');
+        // Hash new password and update user
         const hashedPassword = await bcrypt.hash(newPassword, 12);
         
+        // Find and update user
+        const userIndex = global.users.findIndex(u => u.email === tokenData.email);
+        if (userIndex !== -1) {
+            global.users[userIndex].passwordHash = hashedPassword;
+            console.log(`🔄 Password updated in user store for: ${tokenData.email}`);
+        } else {
+            console.log(`🔄 User not found in store for: ${tokenData.email}`);
+        }
+        
         console.log(`🔄 Password reset successful for: ${tokenData.email}`);
-        console.log(`🔄 New hashed password: ${hashedPassword.substring(0, 20)}...`);
         
         // Clean up token
         delete global.resetTokens[token];
