@@ -142,6 +142,13 @@ try {
   console.error('❌ Recommendations route failed:', e.message);
 }
 
+try {
+  app.use('/api/fix', require('./routes/fix-problems-1-10'));
+  console.log('✅ Fix problems route loaded');
+} catch (e) {
+  console.error('❌ Fix problems route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
