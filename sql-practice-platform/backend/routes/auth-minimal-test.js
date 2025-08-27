@@ -13,12 +13,32 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('he
 global.users = global.users || [];
 global.bookmarks = global.bookmarks || [];
 global.progress = global.progress || [];
+global.resetTokens = global.resetTokens || {};
+
+// Debug: Log current state on route load
+console.log('🧪 Auth routes loaded - Current state:');
+console.log('🧪 Users in store:', global.users.length);
+console.log('🧪 User emails:', global.users.map(u => u.email));
+console.log('🧪 Active reset tokens:', Object.keys(global.resetTokens).length);
 
 // Test endpoint
 router.get('/test', (req, res) => {
     res.json({ 
         message: 'Auth routes working!', 
         timestamp: new Date().toISOString() 
+    });
+});
+
+// Debug endpoint
+router.get('/debug', (req, res) => {
+    res.json({
+        users: global.users.map(u => ({ email: u.email, hasPassword: !!u.passwordHash })),
+        resetTokens: Object.keys(global.resetTokens).map(token => ({
+            token: token.substring(0, 10) + '...',
+            email: global.resetTokens[token]?.email,
+            expires: new Date(global.resetTokens[token]?.expires).toISOString()
+        })),
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -88,23 +108,37 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     console.log('🔐 Login request');
     const { email, password } = req.body;
+    console.log('🔐 Login attempt for email:', email);
+    console.log('🔐 Password provided:', password ? `YES (length: ${password.length})` : 'NO');
     
     if (!email || !password) {
+        console.log('🔐 ❌ Missing email or password');
         return res.status(400).json({ error: 'Email and password are required' });
     }
     
     try {
         // Find user
+        console.log('🔐 Looking for user in store...');
+        console.log('🔐 Total users in store:', global.users.length);
+        console.log('🔐 User emails in store:', global.users.map(u => u.email));
+        
         const user = global.users.find(u => u.email === email && u.isActive);
         
         if (!user) {
+            console.log('🔐 ❌ User not found or inactive');
             return res.status(400).json({ error: 'Invalid email or password' });
         }
         
+        console.log('🔐 ✅ User found:', user.email);
+        console.log('🔐 User hash:', user.passwordHash ? user.passwordHash.substring(0, 20) + '...' : 'NO HASH');
+        
         // Check password
+        console.log('🔐 Comparing password...');
         const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        console.log('🔐 Password comparison result:', isValidPassword ? 'SUCCESS' : 'FAILED');
         
         if (!isValidPassword) {
+            console.log('🔐 ❌ Invalid password');
             return res.status(400).json({ error: 'Invalid email or password' });
         }
         
@@ -210,46 +244,79 @@ router.post('/forgot-password', async (req, res) => {
 // Reset password endpoint
 router.post('/reset-password', async (req, res) => {
     console.log('🔄 Reset password request');
+    console.log('🔄 Request body:', { token: req.body.token ? 'EXISTS' : 'MISSING', newPassword: req.body.newPassword ? `LENGTH:${req.body.newPassword.length}` : 'MISSING' });
     const { token, newPassword } = req.body;
     
     if (!token || !newPassword) {
+        console.log('🔄 ❌ Missing token or password');
         return res.status(400).json({ error: 'Token and new password are required' });
     }
     
     if (newPassword.length < 8) {
+        console.log('🔄 ❌ Password too short');
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
     
     try {
         // Check token from in-memory store (in production, use database)
         global.resetTokens = global.resetTokens || {};
+        console.log('🔄 Available tokens:', Object.keys(global.resetTokens).length);
+        console.log('🔄 Looking for token:', token.substring(0, 10) + '...');
+        
         const tokenData = global.resetTokens[token];
         
         if (!tokenData) {
+            console.log('🔄 ❌ Token not found in store');
+            console.log('🔄 Available token prefixes:', Object.keys(global.resetTokens).map(t => t.substring(0, 10) + '...'));
             return res.status(400).json({ error: 'Invalid or expired reset token' });
         }
         
+        console.log('🔄 ✅ Token found for email:', tokenData.email);
+        console.log('🔄 Token expires at:', new Date(tokenData.expires).toISOString());
+        console.log('🔄 Current time:', new Date(Date.now()).toISOString());
+        
         if (Date.now() > tokenData.expires) {
+            console.log('🔄 ❌ Token expired');
             delete global.resetTokens[token];
             return res.status(400).json({ error: 'Reset token has expired' });
         }
         
         // Hash new password and update user
+        console.log('🔄 Hashing new password...');
         const hashedPassword = await bcrypt.hash(newPassword, 12);
+        console.log('🔄 Password hashed successfully');
         
         // Find and update user
+        console.log('🔄 Looking for user with email:', tokenData.email);
+        console.log('🔄 Total users in store:', global.users.length);
+        console.log('🔄 User emails in store:', global.users.map(u => u.email));
+        
         const userIndex = global.users.findIndex(u => u.email === tokenData.email);
         if (userIndex !== -1) {
+            const oldPasswordHash = global.users[userIndex].passwordHash;
             global.users[userIndex].passwordHash = hashedPassword;
-            console.log(`🔄 Password updated in user store for: ${tokenData.email}`);
+            console.log(`🔄 ✅ Password updated in user store for: ${tokenData.email}`);
+            console.log(`🔄 Old hash: ${oldPasswordHash.substring(0, 20)}...`);
+            console.log(`🔄 New hash: ${hashedPassword.substring(0, 20)}...`);
+            
+            // Verify the update worked
+            const updatedUser = global.users[userIndex];
+            console.log(`🔄 Verification - User hash is now: ${updatedUser.passwordHash.substring(0, 20)}...`);
+            
+            // Test password verification
+            const testVerify = await bcrypt.compare(newPassword, updatedUser.passwordHash);
+            console.log(`🔄 Test password verification: ${testVerify ? 'SUCCESS' : 'FAILED'}`);
+            
         } else {
-            console.log(`🔄 User not found in store for: ${tokenData.email}`);
+            console.log(`🔄 ❌ User not found in store for: ${tokenData.email}`);
+            return res.status(400).json({ error: 'User account not found' });
         }
         
-        console.log(`🔄 Password reset successful for: ${tokenData.email}`);
+        console.log(`🔄 ✅ Password reset successful for: ${tokenData.email}`);
         
         // Clean up token
         delete global.resetTokens[token];
+        console.log('🔄 ✅ Reset token cleaned up');
         
         res.json({
             success: true,
