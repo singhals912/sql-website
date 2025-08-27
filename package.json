@@ -1,0 +1,8 @@
+{
+  "name": "sql-practice-platform",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd sql-practice-platform/frontend && npm install && npm run build",
+    "start": "cd sql-practice-platform/frontend && npm start"
+  }
+}
