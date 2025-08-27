@@ -17,8 +17,11 @@ const ResetPasswordPage = () => {
 
   useEffect(() => {
     const tokenFromUrl = searchParams.get('token');
+    console.log('🔄 Reset password page - token from URL:', tokenFromUrl);
+    console.log('🔄 Reset password page - current URL:', window.location.href);
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
+      setError(''); // Clear any previous errors
     } else {
       setError('Invalid reset link. Please request a new password reset.');
     }
@@ -67,7 +70,10 @@ const ResetPasswordPage = () => {
     setMessage('');
     
     try {
+      console.log('🔄 Submitting reset password with token:', token);
+      console.log('🔄 Password length:', formData.newPassword.length);
       const result = await resetPassword(token, formData.newPassword);
+      console.log('🔄 Reset password result:', result);
       
       if (result.success) {
         setMessage('Password reset successfully! Redirecting to login...');
