@@ -122,11 +122,12 @@ try {
 try {
   const authRoute = require('./routes/auth-minimal-test');
   app.use('/api/auth', authRoute);
-  // Also expose bookmarks and progress endpoints from auth route
+  // Also expose bookmarks, progress, and recommendations endpoints from auth route
   app.use('/api/bookmarks', authRoute);  
   app.use('/api/progress', authRoute);
+  app.use('/api/recommendations', authRoute);
   console.log('✅ Auth route (minimal test with SendGrid) loaded');
-  console.log('✅ Bookmarks and Progress routes mapped to auth endpoints');
+  console.log('✅ Bookmarks, Progress, and Recommendations routes mapped to auth endpoints');
 } catch (e) {
   console.error('❌ Auth route failed:', e.message);
 }

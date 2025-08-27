@@ -370,5 +370,91 @@ router.get('/progress', (req, res) => {
     });
 });
 
+// Recommendations endpoints
+router.get('/problems', (req, res) => {
+    console.log('🎯 Get recommendations request');
+    
+    // Mock recommendation data
+    const recommendations = [
+        {
+            id: 1,
+            numeric_id: 1,
+            title: 'Basic SELECT Query',
+            description: 'Learn the fundamentals of retrieving data from a database table using SELECT statements.',
+            difficulty: 'easy',
+            category: 'Basics',
+            recommendation_score: 95,
+            recommendation_reason: 'Perfect starting point'
+        },
+        {
+            id: 2,
+            numeric_id: 2,
+            title: 'Filtering with WHERE',
+            description: 'Master conditional queries by filtering data with WHERE clauses and comparison operators.',
+            difficulty: 'easy',
+            category: 'Filtering',
+            recommendation_score: 88,
+            recommendation_reason: 'Build on SELECT knowledge'
+        },
+        {
+            id: 3,
+            numeric_id: 5,
+            title: 'Joining Tables',
+            description: 'Combine data from multiple tables using INNER JOIN, LEFT JOIN, and other join types.',
+            difficulty: 'medium',
+            category: 'Joins',
+            recommendation_score: 75,
+            recommendation_reason: 'Essential skill'
+        }
+    ];
+    
+    res.json({
+        success: true,
+        data: {
+            recommendations: recommendations,
+            userProfile: {
+                skill_level: 'Newcomer',
+                completed_problems: 0,
+                success_rate: 0
+            }
+        }
+    });
+});
+
+router.get('/daily-challenge', (req, res) => {
+    console.log('🔥 Get daily challenge request');
+    
+    // Mock daily challenge
+    const challenge = {
+        id: 41,
+        numeric_id: 41,
+        title: 'McKinsey Client Engagement Analysis',
+        description: '**Business Context:** McKinsey & Company analyzes client engagement patterns and consultant utilization across different practice areas to optimize staffing models and identify high-value client relationships...',
+        difficulty: 'hard',
+        category: 'Advanced Topics'
+    };
+    
+    res.json({
+        success: true,
+        data: {
+            challenge: challenge
+        }
+    });
+});
+
+router.get('/progress-dashboard', (req, res) => {
+    console.log('📊 Get progress dashboard request');
+    
+    res.json({
+        success: true,
+        data: {
+            streakInfo: {
+                current_streak: 0,
+                longest_streak: 0
+            }
+        }
+    });
+});
+
 console.log('✅ Minimal auth test routes loaded');
 module.exports = router;
