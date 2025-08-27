@@ -265,27 +265,29 @@ router.post('/reset-password', async (req, res) => {
 // Bookmarks endpoints
 router.get('/bookmarks', (req, res) => {
     console.log('📚 Get bookmarks request');
-    const sessionId = req.headers['x-session-id'] || 'anonymous';
+    const sessionId = req.headers['x-session-id'] || req.headers['X-Session-ID'] || 'anonymous';
     
     // Filter bookmarks for this session
     const userBookmarks = global.bookmarks.filter(b => b.sessionId === sessionId);
     
     // Mock some bookmark data if empty for demo
     if (userBookmarks.length === 0) {
-        // Add a sample bookmark
-        const sampleBookmark = {
-            id: Date.now(),
-            sessionId,
-            problemId: 1,
-            title: 'Basic SELECT Query',
-            difficulty: 'easy',
-            category: 'basics',
-            type: 'favorite',
-            createdAt: new Date().toISOString(),
-            notes: ''
-        };
-        global.bookmarks.push(sampleBookmark);
-        userBookmarks.push(sampleBookmark);
+        // Add sample bookmarks with different types
+        const sampleBookmarks = [
+            {
+                id: Date.now(),
+                sessionId,
+                problemId: 1,
+                title: 'Basic SELECT Query',
+                difficulty: 'easy',
+                category: 'basics',
+                type: 'review_later',
+                createdAt: new Date().toISOString(),
+                notes: ''
+            }
+        ];
+        global.bookmarks.push(...sampleBookmarks);
+        userBookmarks.push(...sampleBookmarks);
     }
     
     res.json({
@@ -297,6 +299,45 @@ router.get('/bookmarks', (req, res) => {
             reviewLater: userBookmarks.filter(b => b.type === 'review_later').length,
             challenging: userBookmarks.filter(b => b.type === 'challenging').length
         }
+    });
+});
+
+router.get('/bookmarks/stats', (req, res) => {
+    console.log('📊 Get bookmark stats request');
+    const sessionId = req.headers['x-session-id'] || req.headers['X-Session-ID'] || 'anonymous';
+    
+    // Filter bookmarks for this session
+    const userBookmarks = global.bookmarks.filter(b => b.sessionId === sessionId);
+    
+    // Mock some bookmark data if empty for demo
+    if (userBookmarks.length === 0) {
+        const sampleBookmark = {
+            id: Date.now(),
+            sessionId,
+            problemId: 1,
+            title: 'Basic SELECT Query',
+            difficulty: 'easy',
+            category: 'basics',
+            type: 'review_later',
+            createdAt: new Date().toISOString(),
+            notes: ''
+        };
+        global.bookmarks.push(sampleBookmark);
+        userBookmarks.push(sampleBookmark);
+    }
+    
+    const stats = {
+        total: userBookmarks.length,
+        byType: {
+            favorite: userBookmarks.filter(b => b.type === 'favorite').length,
+            review_later: userBookmarks.filter(b => b.type === 'review_later').length,
+            challenging: userBookmarks.filter(b => b.type === 'challenging').length
+        }
+    };
+    
+    res.json({
+        success: true,
+        stats: stats
     });
 });
 
