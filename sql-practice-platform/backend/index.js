@@ -144,9 +144,16 @@ try {
 
 try {
   app.use('/api/fix', require('./routes/fix-problems-1-10'));
-  console.log('✅ Fix problems route loaded');
+  console.log('✅ Fix problems 1-10 route loaded');
 } catch (e) {
-  console.error('❌ Fix problems route failed:', e.message);
+  console.error('❌ Fix problems 1-10 route failed:', e.message);
+}
+
+try {
+  app.use('/api/fix', require('./routes/fix-problems-11-20'));
+  console.log('✅ Fix problems 11-20 route loaded');
+} catch (e) {
+  console.error('❌ Fix problems 11-20 route failed:', e.message);
 }
 
 // Serve frontend static files in production
