@@ -1,0 +1,18 @@
+# Handle client-side routing for React Router
+/reset-password/* /index.html 200
+/login/* /index.html 200
+/register/* /index.html 200
+/verify-email/* /index.html 200
+/problems/* /index.html 200
+/practice/* /index.html 200
+/bookmarks/* /index.html 200
+/profile/* /index.html 200
+/progress/* /index.html 200
+/learn/* /index.html 200
+/learning-paths/* /index.html 200
+
+# API routes should go to the backend
+/api/* https://sql-website-production-d4d1.up.railway.app/api/:splat 200
+
+# Fallback for all other routes
+/* /index.html 200

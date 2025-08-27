@@ -1,527 +1,326 @@
-# 🚀 SQL Practice Platform
+# SQL Practice Platform
 
-A comprehensive, production-ready SQL learning platform with dual-database support (PostgreSQL & MySQL), intelligent validation, and enterprise-grade security features.
+A full-stack web application for learning and practicing SQL with interactive challenges, personalized recommendations, and progress tracking.
 
-## 📊 Platform Overview
+## 🏗️ Current Architecture
 
-**Status**: ✅ **Production Ready**  
-**Problems**: 70 comprehensive SQL challenges  
-**Database Support**: PostgreSQL & MySQL (100% compatibility)  
-**Validation Coverage**: 100% (140/140 schemas with expected outputs)  
-**Security**: Enterprise-grade query validation and sandboxing  
+### Frontend (Vercel - datasql.pro)
+- **Framework**: React 18 with React Router v6
+- **Styling**: Tailwind CSS with dark mode support
+- **Deployment**: Vercel (custom domain: datasql.pro)
+- **Build**: Create React App
 
----
+### Backend (Railway)
+- **Framework**: Node.js with Express
+- **Database**: PostgreSQL (planned, currently using in-memory storage)
+- **Email**: SendGrid integration for password reset
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **Deployment**: Railway (sql-website-production-d4d1.up.railway.app)
 
-## ✨ Key Features
-
-### 🎯 **Core Learning Experience**
-- **70 Real-World SQL Problems** across all difficulty levels
-- **Dual Database Support** - Practice with both PostgreSQL and MySQL
-- **Instant Validation** - Get immediate correct/incorrect feedback
-- **Educational Error Messages** - Learn from mistakes with detailed explanations
-- **Progress Tracking** - Monitor learning journey and achievements
-
-### 🛡️ **Enterprise Security**
-- **SQL Injection Protection** - Advanced query sanitization
-- **Malicious Query Blocking** - Prevents dangerous operations (DROP, DELETE, etc.)
-- **Sandboxed Execution** - Isolated database environments
-- **Rate Limiting** - Protection against abuse (5000 req/min)
-- **Security Logging** - Comprehensive event tracking
-
-### 📈 **Performance & Monitoring**
-- **Real-time Health Dashboard** - System monitoring at `/api/monitor/health`
-- **Performance Metrics** - Database response times and system resources
-- **Query Benchmarking** - Performance testing tools
-- **Sub-20ms Response Times** - Optimized for speed
-
-### 🎓 **Advanced Learning Features**
-- **Smart Hints System** - Contextual help when stuck
-- **Learning Paths** - Structured curriculum progression
-- **Difficulty Progression** - Easy → Medium → Hard challenges
-- **Achievement System** - Gamified learning experience
-- **Bookmark System** - Save favorite problems
-
----
-
-## 🏗️ Architecture
+## 📁 Project Structure
 
 ```
 sql-practice-platform/
-├── backend/                 # Node.js API Server
-│   ├── routes/             # API endpoints
-│   ├── services/           # Business logic
-│   ├── config/            # Database & environment config
-│   ├── utils/             # Helper functions
-│   └── dev-scripts/       # Development & debugging tools
-├── frontend/              # React.js Web Application
-│   ├── src/components/    # Reusable UI components  
-│   ├── src/pages/         # Application pages
-│   ├── src/services/      # API integration
-│   └── src/contexts/      # State management
-├── database/              # Database schemas & migrations
-├── docker-compose.yml     # Docker orchestration
-└── docs/                  # Documentation
+├── frontend/                 # React frontend
+│   ├── src/
+│   │   ├── components/      # Reusable React components
+│   │   ├── pages/           # Page components (HomePage, LoginPage, etc.)
+│   │   ├── contexts/        # React contexts (AuthContext, ThemeContext)
+│   │   ├── services/        # API service layers
+│   │   └── config/          # Environment configuration
+│   ├── public/
+│   │   ├── index.html
+│   │   └── _redirects       # Netlify/Vercel routing rules
+│   └── package.json
+├── backend/                 # Node.js backend
+│   ├── routes/              # Express route handlers
+│   │   ├── auth-minimal-test.js  # Currently active auth routes
+│   │   ├── auth.js          # Full auth implementation
+│   │   └── [other routes]
+│   ├── config/              # Database and environment config
+│   ├── middleware/          # Express middleware
+│   └── index.js             # Main server file
+├── vercel.json              # Vercel deployment config
+└── README.md
 ```
 
-### 🗄️ **Database Architecture**
+## 🔧 Current Implementation Status
 
-**Main Database (PostgreSQL - port 5432)**
-- User management, authentication
-- Problem metadata and schemas
-- Progress tracking and analytics
-- Learning paths and achievements
+### ✅ Working Features
+- **Email System**: SendGrid integration with password reset emails
+- **Authentication Backend**: Login, register, forgot password, reset password endpoints
+- **In-Memory Data**: Users, bookmarks, progress tracking (session-based)
+- **Frontend Components**: Complete UI for all features
+- **Dark Mode**: Full dark/light theme support
 
-**Executor Databases (Sandboxed)**
-- PostgreSQL Executor (port 5433) - PostgreSQL problem execution
-- MySQL Executor (port 3307) - MySQL problem execution  
-- Redis Cache (port 6379) - Session and performance caching
+### ⚠️ Critical Issues (Need Immediate Attention)
+- **🔴 Domain Down**: datasql.pro not loading (site completely inaccessible)
+- **🔴 Reset Password Routing**: Links redirect to homepage instead of reset form
+- **🔴 Bookmarks API**: "Failed to load bookmarks" error persists
+- **🟡 Homepage Duplicates**: Some repetitive content sections
+- **🟡 API Routing**: Frontend-backend communication issues
 
----
+## 🔄 Current Route Structure
 
-## 🚀 Quick Start
+### Frontend Routes (React Router)
+```javascript
+/ → NewHomePage
+/login → LoginPage  
+/register → RegisterPage
+/reset-password → ResetPasswordPage (BROKEN - redirects to /)
+/bookmarks → BookmarksPage (BROKEN - API errors)
+/problems → ProblemsPage
+/progress → ProgressPage  
+/profile → ProfilePage
+```
+
+### Backend API Routes (Express)
+```javascript
+// Auth routes
+POST /api/auth/login
+POST /api/auth/register  
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+
+// Data routes (mapped to auth routes temporarily)
+GET /api/bookmarks
+GET /api/bookmarks/stats
+POST /api/bookmarks
+GET /api/progress
+GET /api/recommendations/problems
+GET /api/recommendations/daily-challenge
+```
+
+## 🔐 Authentication Flow
+
+### Current Implementation (In-Memory)
+1. **Registration**: Creates user in `global.users` array
+2. **Login**: Validates password with bcrypt, returns JWT token
+3. **Forgot Password**: Generates token, sends email via SendGrid
+4. **Reset Password**: Validates token, updates password in memory
+
+### Environment Variables (Railway)
+```
+SMTP_PASS=SG.xxx (SendGrid API key)
+EMAIL_FROM=noreply@datasql.pro
+JWT_SECRET=xxx
+```
+
+## 📧 Email Configuration
+
+### SendGrid Setup
+- **Domain**: datasql.pro authenticated with SendGrid
+- **DNS Records**: CNAME records added to domain provider
+- **API Key**: Full access key configured in Railway
+- **Templates**: HTML email templates for password reset
+
+### Email Flow
+1. User requests password reset
+2. Backend generates secure token
+3. SendGrid sends email with reset link
+4. Link format: `https://datasql.pro/reset-password?token=xxx`
+
+## 🐛 Known Issues & Debugging
+
+### 🔴 CRITICAL: Issue 1 - Domain Not Loading
+- **Problem**: datasql.pro completely inaccessible
+- **Impact**: Entire application down
+- **Possible Causes**: 
+  - Vercel deployment failure
+  - DNS propagation issues  
+  - Routing configuration breaking deployment
+  - Build failures from recent changes
+- **Status**: URGENT - needs immediate investigation
+
+### 🔴 Issue 2: Reset Password Routing
+- **Problem**: Reset links redirect to homepage
+- **Cause**: Vercel routing not handling React Router client-side routes
+- **Attempted Fixes**: 
+  - Added _redirects file
+  - Updated vercel.json with rewrites
+  - Simplified routing configuration
+- **Status**: Still broken
+
+### 🔴 Issue 3: Bookmarks API Failures  
+- **Problem**: "Failed to load bookmarks" error
+- **Cause**: API endpoint mismatch and data structure issues
+- **Expected**: `/api/bookmarks/stats` returning specific format
+- **Attempted Fixes**:
+  - Added `/api/bookmarks/stats` endpoint
+  - Fixed data structure to match frontend expectations
+  - Added session ID header handling
+- **Status**: API exists but still failing
+
+### 🟡 Issue 4: Homepage Content Duplication
+- **Problem**: Repetitive sections and data sync issues
+- **Cause**: Multiple components rendering similar content
+- **Fix Applied**: Removed duplicates from RecommendationDashboard
+- **Status**: Should be resolved
+
+## 🔧 Development Setup
 
 ### Prerequisites
-- Docker & Docker Compose
 - Node.js 18+
+- npm or yarn
 - Git
 
-### 1. Clone & Setup
+### Local Development
 ```bash
-git clone <repository-url>
+# Clone repository
+git clone [repo-url]
 cd sql-practice-platform
 
-# Start all services
-docker-compose up -d
-
-# Install backend dependencies
+# Backend setup
 cd backend
 npm install
+npm run dev    # Runs on localhost:5001
 
-# Install frontend dependencies  
+# Frontend setup  
 cd ../frontend
 npm install
+npm start      # Runs on localhost:3000
 ```
 
-### 2. Start Development Servers
-```bash
-# Terminal 1 - Backend API (port 5001)
-cd backend
-npm start
+### Environment Configuration
+Create `.env` files:
 
-# Terminal 2 - Frontend Dev Server (port 3000)  
-cd frontend
-npm start
-```
-
-### 3. Initialize Database (First Time)
-```bash
-# Create MySQL tables for all 70 problems
-cd backend
-node create_all_mysql_tables.js
-```
-
-### 4. Access Platform
-- **Frontend**: http://localhost:3000
-- **API Health**: http://localhost:5001/api/health
-- **Monitoring Dashboard**: http://localhost:5001/api/monitor/health
-
----
-
-## 📚 API Documentation
-
-### 🔍 **Core Endpoints**
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/api/health` | GET | System health check | No |
-| `/api/problems` | GET | List all SQL problems | No |
-| `/api/execute/sql` | POST | Execute SQL queries | No |
-| `/api/monitor/health` | GET | Detailed system status | No |
-| `/api/auth/login` | POST | User authentication | No |
-| `/api/progress` | GET | User progress tracking | Yes |
-| `/api/bookmarks` | GET/POST | Bookmark management | Yes |
-
-### 🎯 **SQL Execution API**
-
-**Endpoint**: `POST /api/execute/sql`
-
-**Request Body**:
-```json
-{
-  "problemId": "uuid-of-problem",
-  "sql": "SELECT * FROM table_name",
-  "dialect": "mysql" | "postgresql"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "columns": ["col1", "col2"],
-    "rows": [{"col1": "value1", "col2": "value2"}],
-    "rowCount": 1,
-    "executionTime": 25,
-    "isCorrect": true,
-    "feedback": "Correct! Your query produced the expected output."
-  }
-}
-```
-
-### 📊 **Monitoring API**
-
-**Health Check**: `GET /api/monitor/health`
-```json
-{
-  "timestamp": "2025-08-23T17:09:10.289Z",
-  "system": "healthy",
-  "databases": {
-    "postgresql": {"status": "healthy", "responseTime": "9ms"},
-    "mysql": {"status": "healthy", "responseTime": "18ms"}
-  },
-  "problems": {
-    "total_problems": "70",
-    "validation_coverage": "100%"
-  }
-}
-```
-
----
-
-## 🎮 Problem Categories
-
-### 📊 **Difficulty Distribution**
-- **Easy**: 24 problems (34%) - Basic SELECT, WHERE, ORDER BY
-- **Medium**: 25 problems (36%) - JOINs, GROUP BY, HAVING, subqueries  
-- **Hard**: 21 problems (30%) - Window functions, CTEs, complex analytics
-
-### 🏢 **Industry Categories**
-1. **Financial Services** - Banking, trading, risk analysis
-2. **Technology** - Software metrics, user analytics  
-3. **E-commerce** - Sales, customer behavior
-4. **Healthcare** - Patient care, medical analytics
-5. **Supply Chain** - Logistics, inventory management
-6. **Media & Entertainment** - Content performance, engagement
-7. **Telecommunications** - Network analysis, service metrics
-8. **Energy** - Consumption analysis, sustainability
-9. **Manufacturing** - Quality control, production metrics
-10. **Consulting** - Client engagement, project analytics
-11. **Real Estate** - Market analysis, property valuation
-12. **Education** - Learning platform analytics
-
----
-
-## 🛠️ Development Guide
-
-### 🔧 **Environment Variables**
-
-Create `.env` file in `/backend/`:
+**Backend `.env`:**
 ```env
-# Database Configuration
+PORT=5001
+NODE_ENV=development
+JWT_SECRET=your-jwt-secret
+FRONTEND_URL=http://localhost:3000
+
+# Email (SendGrid)
+SMTP_PASS=SG.your-sendgrid-api-key
+EMAIL_FROM=noreply@datasql.pro
+
+# Database (planned)
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=sql_practice
 DB_USER=postgres
-DB_PASSWORD=sql_practice_secure_2024!
-
-# JWT Configuration
-JWT_SECRET=your-secure-jwt-secret-here
-
-# Frontend URL
-FRONTEND_URL=http://localhost:3000
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
+DB_PASSWORD=your-password
 ```
 
-### 🐛 **Development Scripts**
+## 🚀 Deployment Status
 
-All development and debugging scripts are located in `/backend/dev-scripts/`:
+### Vercel (Frontend)
+- **Domain**: datasql.pro
+- **Status**: 🔴 **CRITICAL - NOT LOADING**
+- **Build**: Automatic on main branch push
+- **Config**: vercel.json with routing rules
 
+### Railway (Backend)  
+- **URL**: sql-website-production-d4d1.up.railway.app
+- **Status**: ✅ Running
+- **Environment**: Production variables configured
+- **Database**: PostgreSQL planned but not connected
+
+## 📋 Immediate Action Items for New Session
+
+### 🔴 URGENT (Fix First)
+1. **Investigate why datasql.pro is down**
+   - Check Vercel deployment status
+   - Verify DNS settings
+   - Check for build failures
+   - Test if vercel.json changes broke deployment
+
+2. **Fix reset password routing**
+   - Debug why React Router isn't working on Vercel
+   - Test local vs production routing behavior
+   - Consider alternative routing solutions
+
+3. **Fix bookmarks API completely**
+   - Debug API call failures in browser network tab
+   - Verify endpoint responses match expected format
+   - Test session ID handling
+
+### 🟡 HIGH (After Critical Issues)
+4. **Connect PostgreSQL database**
+5. **Implement proper user sessions**
+6. **Add more SQL problems and features**
+
+## 🔄 Recent Changes (Last Session)
+- Fixed server syntax errors causing Railway crashes
+- Added complete authentication endpoints
+- Implemented SendGrid email functionality  
+- Added bookmarks and progress API endpoints
+- Updated homepage to remove duplicate content
+- Added client-side routing configuration (_redirects, vercel.json)
+- Fixed package.json dependencies
+
+## 🛠️ Technologies Used
+
+### Frontend
+- React 18, React Router v6
+- Tailwind CSS, CSS Modules
+- Axios for API calls
+- Local storage for session management
+
+### Backend  
+- Express.js, Node.js
+- bcryptjs for password hashing
+- jsonwebtoken for authentication
+- @sendgrid/mail for emails
+- CORS, helmet for security
+
+### Deployment
+- Vercel for static frontend
+- Railway for Node.js backend
+- SendGrid for email delivery
+- Namecheap for domain management
+
+## 🧪 Testing & Debugging
+
+### Local Testing
 ```bash
-# Analyze database tables and schemas
-node dev-scripts/audit_tables.js
-
-# Extract MySQL schemas from PostgreSQL
-node dev-scripts/extract_mysql_schema.js
-
-# List all required tables for problems
-node dev-scripts/list_all_tables.js
-
-# Investigate database structure
-node dev-scripts/investigate_db.js
-```
-
-### 🧪 **Testing**
-
-```bash
-# Test API health
+# Test backend health
 curl http://localhost:5001/api/health
 
-# Test SQL execution (PostgreSQL)
-curl -X POST http://localhost:5001/api/execute/sql \
+# Test auth endpoints
+curl -X POST http://localhost:5001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"problemId":"problem-uuid","sql":"SELECT 1","dialect":"postgresql"}'
+  -d '{"email": "test@example.com", "password": "password123"}'
 
-# Test monitoring dashboard
-curl http://localhost:5001/api/monitor/health
-
-# Run benchmarks
-curl -X POST http://localhost:5001/api/monitor/benchmark \
-  -H "Content-Type: application/json" \
-  -d '{"dialect":"mysql","iterations":10}'
+# Test bookmarks
+curl http://localhost:5001/api/bookmarks/stats \
+  -H "X-Session-ID: test-session"
 ```
 
----
-
-## 🔒 Security Features
-
-### 🛡️ **Query Validation**
-- **Whitelist Approach** - Only SELECT statements allowed in practice mode
-- **Keyword Blocking** - Prevents DROP, DELETE, INSERT, UPDATE, ALTER
-- **Multiple Statement Prevention** - Blocks semicolon-separated queries
-- **Comment Stripping** - Removes SQL comments to prevent obfuscation
-
-### 🏰 **Infrastructure Security**
-- **Docker Isolation** - Sandboxed database containers
-- **Rate Limiting** - Express rate limiter (5000 requests/minute)
-- **CORS Protection** - Configured for specific origins
-- **Helmet.js** - Security headers protection
-- **Environment Validation** - Startup security checks
-
-### 📝 **Security Logging**
-```javascript
-// Example security event log
-{
-  "timestamp": "2025-08-23T17:09:10Z",
-  "event": "QUERY_BLOCKED",
-  "reason": "Contains dangerous keyword: DROP",
-  "query": "DROP TABLE users",
-  "sessionId": "session-123",
-  "blocked": true
-}
-```
-
----
-
-## 📈 Performance Metrics
-
-### ⚡ **Response Times**
-- **API Health Check**: ~3ms
-- **PostgreSQL Queries**: 9-20ms average
-- **MySQL Queries**: 6-25ms average
-- **Problem Loading**: <100ms
-- **Full Page Load**: <2 seconds
-
-### 💾 **Resource Usage**
-- **Memory**: ~67MB RSS, ~15MB heap
-- **CPU**: Low utilization (~5% during queries)
-- **Database Connections**: Pooled (max 20 per database)
-- **Concurrent Users**: Tested up to 100 simultaneous
-
----
-
-## 🚀 Production Deployment
-
-### 🐳 **Docker Production Setup**
-
+### Production Testing (When Working)
 ```bash
-# Production environment
-docker-compose -f docker-compose.prod.yml up -d
+# Test production backend
+curl https://sql-website-production-d4d1.up.railway.app/api/health
 
-# Scale backend instances
-docker-compose up --scale backend=3
-
-# Enable SSL/TLS
-# Configure reverse proxy (nginx/caddy) with SSL certificates
+# Test production API through Vercel proxy
+curl https://datasql.pro/api/auth/test
 ```
 
-### ☁️ **Cloud Deployment Options**
+## 📚 Key File Locations
 
-1. **AWS**:
-   - ECS/Fargate for containers
-   - RDS for PostgreSQL
-   - ElastiCache for Redis
-   - ALB for load balancing
+### Frontend
+- **Main App**: `frontend/src/App.js`
+- **Homepage**: `frontend/src/pages/NewHomePage.js`
+- **Reset Password**: `frontend/src/pages/ResetPasswordPage.js`
+- **Bookmarks**: `frontend/src/pages/BookmarksPage.js`
+- **Auth Context**: `frontend/src/contexts/AuthContext.js`
+- **Environment Config**: `frontend/src/config/environment.js`
 
-2. **Google Cloud**:
-   - Cloud Run for serverless containers
-   - Cloud SQL for databases  
-   - Cloud Load Balancer
+### Backend
+- **Main Server**: `backend/index.js`
+- **Auth Routes**: `backend/routes/auth-minimal-test.js`
+- **Package**: `backend/package.json`
 
-3. **Azure**:
-   - Container Instances
-   - Azure Database for PostgreSQL
-   - Application Gateway
-
-### 🔧 **Production Checklist**
-
-- [ ] Set secure JWT secrets (256-bit minimum)
-- [ ] Configure HTTPS/SSL certificates
-- [ ] Set up database backups and replication
-- [ ] Configure monitoring and alerting
-- [ ] Set up log aggregation (ELK/Splunk)
-- [ ] Configure CDN for static assets
-- [ ] Set up CI/CD pipeline
-- [ ] Perform load testing
-- [ ] Configure database connection pooling
-- [ ] Set up health checks and auto-scaling
+### Configuration
+- **Vercel Config**: `vercel.json`
+- **Frontend Redirects**: `frontend/public/_redirects`
 
 ---
 
-## 📊 Monitoring & Observability
+**⚠️ CRITICAL NOTE FOR NEW SESSION**: 
+The site (datasql.pro) is currently down and needs immediate attention. Start by investigating the domain/deployment issues before working on other features.
 
-### 🎛️ **Built-in Monitoring**
+**Latest Git Commit**: Contains routing fixes and API updates that may have caused the outage.
 
-Access real-time metrics at:
-- **Health Dashboard**: `/api/monitor/health`
-- **System Metrics**: `/api/monitor/metrics` 
-- **Performance Benchmarks**: `/api/monitor/benchmark`
-
-### 📈 **Key Metrics to Monitor**
-
-1. **Application Metrics**:
-   - Response times (API endpoints)
-   - Error rates and status codes
-   - Query execution times
-   - User session duration
-
-2. **Database Metrics**:
-   - Connection pool usage
-   - Query performance
-   - Database response times
-   - Active connections
-
-3. **System Metrics**:
-   - CPU and memory usage
-   - Docker container health
-   - Network I/O
-   - Disk usage
-
-4. **Business Metrics**:
-   - Problems solved per day
-   - User engagement rates
-   - Success/failure ratios
-   - Popular problem categories
-
----
-
-## 🤝 Contributing
-
-### 🔄 **Development Workflow**
-
-1. **Fork** the repository
-2. **Create** feature branch (`git checkout -b feature/amazing-feature`)
-3. **Test** your changes thoroughly
-4. **Commit** changes (`git commit -m 'Add amazing feature'`)
-5. **Push** to branch (`git push origin feature/amazing-feature`)
-6. **Open** Pull Request
-
-### 📋 **Code Standards**
-
-- **JavaScript**: ES6+, async/await preferred
-- **React**: Functional components with hooks
-- **CSS**: Tailwind CSS utility classes
-- **Database**: PostgreSQL-first, MySQL compatibility
-- **Security**: Always validate inputs, sanitize queries
-- **Testing**: Include tests for new features
-
----
-
-## 🎯 Next Steps & Roadmap
-
-### 🚀 **Immediate Launch Preparations**
-1. **Performance Optimization**
-   - [ ] Implement query result caching
-   - [ ] Add database query optimization
-   - [ ] Set up CDN for static assets
-
-2. **Enhanced Monitoring**  
-   - [ ] Add APM integration (New Relic/DataDog)
-   - [ ] Set up error tracking (Sentry)
-   - [ ] Implement custom dashboards
-
-3. **User Experience**
-   - [ ] Add keyboard shortcuts for SQL editor
-   - [ ] Implement dark/light theme toggle
-   - [ ] Add mobile-responsive design
-
-### 📈 **Phase 2 Features**
-1. **Advanced Learning**
-   - [ ] AI-powered hint system
-   - [ ] Custom problem creation
-   - [ ] Team/classroom features
-   - [ ] Certification system
-
-2. **Database Expansion**
-   - [ ] SQLite support
-   - [ ] MongoDB query practice
-   - [ ] NoSQL challenges
-
-3. **Analytics & Insights**
-   - [ ] Learning analytics dashboard
-   - [ ] Performance trending
-   - [ ] Predictive difficulty assessment
-
-### 🌟 **Long-term Vision**
-1. **Enterprise Features**
-   - [ ] SSO integration
-   - [ ] Advanced user management
-   - [ ] Custom branding
-   - [ ] API for integrations
-
-2. **Platform Expansion**
-   - [ ] Mobile app development
-   - [ ] Offline mode support
-   - [ ] Multi-language support
-   - [ ] Community features
-
----
-
-## 📞 Support & Contact
-
-### 🐛 **Issue Reporting**
-- **Bug Reports**: Create GitHub issue with reproduction steps
-- **Feature Requests**: Use GitHub discussions
-- **Security Issues**: Email security@yourplatform.com
-
-### 📚 **Documentation**
-- **API Docs**: `/docs/api.md`
-- **Database Schema**: `/docs/database.md`
-- **Deployment Guide**: `/docs/deployment.md`
-
-### 🌐 **Community**
-- **Discord**: Join our developer community
-- **Blog**: Technical articles and updates
-- **Newsletter**: Monthly feature updates
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **PostgreSQL Community** - Excellent documentation and support
-- **MySQL Team** - Robust database engine
-- **React.js** - Outstanding frontend framework
-- **Node.js Community** - Rich ecosystem of packages
-- **Docker** - Simplified deployment and development
-- **All Contributors** - Thank you for making this project better!
-
----
-
-<div align="center">
-
-**🚀 Ready to launch your SQL learning journey?**
-
-[Get Started](#-quick-start) | [View Problems](http://localhost:3000) | [API Docs](#-api-documentation) | [Contributing](#-contributing)
-
-Made with ❤️ for the developer community
-
-</div>
+**Priority Order**: Domain → Reset Password → Bookmarks → Other Features
