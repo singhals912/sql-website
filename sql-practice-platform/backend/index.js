@@ -44,7 +44,13 @@ app.use(express.urlencoded({ extended: true }));
 // Health check - FIRST to ensure it's always available
 app.get('/api/health', (req, res) => {
     console.log('Health check requested');
-    res.json({ status: 'ok', message: 'Server is running', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'ok', 
+        message: 'Server is running', 
+        timestamp: new Date().toISOString(),
+        version: 'v2.2-debug-auth-routes',
+        authRouteFile: 'auth-minimal-test.js'
+    });
 });
 
 // Essential routes only for startup - load others after server starts
