@@ -46,7 +46,6 @@ const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
 
       try {
         const sessionId = getSessionId();
-        console.log('Checking bookmark status for:', { problemId, sessionId });
         
         const response = await fetch(bookmarksUrl(`check/${problemId}`), {
           headers: {
@@ -56,7 +55,6 @@ const BookmarkButton = ({ problemId, size = 'md', className = '' }) => {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('Bookmark status response:', data);
           setIsBookmarked(data.bookmarked);
           setBookmarkType(data.bookmarkType);
         } else {

@@ -362,12 +362,18 @@ router.get('/:pathId', async (req, res) => {
             
             // Fallback: Map pathId to category and get problems from that category
             const categoryMappings = {
-                '1': 'basic-queries',      // SQL Fundamentals -> Basic Queries
-                '2': 'aggregation',        // Data Analysis -> Aggregation  
-                '3': 'window-functions',   // Advanced Analytics -> Window Functions
-                '4': 'joins',
-                '5': 'subqueries',
-                '6': 'advanced-topics'
+                '1': 'basic-queries',           // SQL Fundamentals -> Basic Queries (14 problems)
+                '2': 'aggregation',             // Data Analysis -> Aggregation (10 problems)
+                '3': 'window-functions',        // Advanced Analytics -> Window Functions (9 problems)
+                '4': 'joins',                   // Joins & Relationships -> Joins (6 problems)
+                '5': 'subqueries',              // Subqueries & CTEs -> Subqueries (3 problems)
+                '6': 'advanced-topics',         // Advanced Topics (19 problems)
+                '7': 'time-analysis',           // Time Series Analysis (4 problems)
+                '8': 'fraud-detection',         // Fraud Detection (1 problem)
+                '9': 'supply-chain',            // Supply Chain Analytics (1 problem)
+                '10': 'recommendation-systems', // Recommendation Systems (1 problem)
+                '11': 'energy-analytics',       // Energy Analytics (1 problem)
+                '12': 'a/b-testing'             // A/B Testing (1 problem)
             };
             
             const categorySlug = categoryMappings[pathId];
@@ -413,7 +419,13 @@ router.get('/:pathId', async (req, res) => {
                             'aggregation': 'Intermediate',
                             'subqueries': 'Intermediate',
                             'window-functions': 'Advanced',
-                            'advanced-topics': 'Advanced'
+                            'advanced-topics': 'Advanced',
+                            'time-analysis': 'Intermediate',
+                            'fraud-detection': 'Advanced',
+                            'supply-chain': 'Intermediate',
+                            'recommendation-systems': 'Advanced',
+                            'energy-analytics': 'Intermediate',
+                            'a/b-testing': 'Intermediate'
                         };
                         
                         pathDetails = {
