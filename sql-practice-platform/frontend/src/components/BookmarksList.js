@@ -26,8 +26,9 @@ const BookmarksList = ({ bookmarkType = null, className = '' }) => {
     
     try {
       const sessionId = getSessionId();
-      const typeParam = selectedType !== 'all' ? `?type=${selectedType}` : '';
-      const url = bookmarksUrl(typeParam.replace('?type=', ''));
+      // The backend /bookmarks endpoint should filter on the frontend side,
+      // not via different URLs. All bookmarks are returned and we filter them.
+      const url = bookmarksUrl(); // Just get base bookmarks URL
       
       console.log('Fetching bookmarks:', { url, sessionId, selectedType });
       
@@ -42,8 +43,24 @@ const BookmarksList = ({ bookmarkType = null, className = '' }) => {
       if (response.ok) {
         const data = await response.json();
         console.log('Bookmarks response data:', data);
-        setBookmarks(data.bookmarks || []);
-        console.log('Updated bookmarks state with', data.bookmarks?.length || 0, 'items');
+        
+        let allBookmarks = data.bookmarks || [];
+        
+        // Filter bookmarks based on selectedType
+        let filteredBookmarks = allBookmarks;
+        if (selectedType !== 'all') {
+          // Map frontend filter names to backend type values
+          const typeMap = {
+            'favorites': 'favorite',
+            'review': 'review_later', 
+            'challenging': 'challenging'
+          };
+          const backendType = typeMap[selectedType] || selectedType;
+          filteredBookmarks = allBookmarks.filter(bookmark => bookmark.type === backendType);
+        }
+        
+        setBookmarks(filteredBookmarks);
+        console.log('Updated bookmarks state with', filteredBookmarks.length, 'items (filtered from', allBookmarks.length, 'total)');
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Bookmarks fetch failed:', response.status, errorData);
