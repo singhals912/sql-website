@@ -107,8 +107,8 @@ try {
 }
 
 try {
-  app.use('/api/auth', require('./routes/auth'));
-  console.log('✅ Auth route loaded');
+  app.use('/api/auth', require('./routes/auth-minimal-test'));
+  console.log('✅ Auth route (minimal test) loaded');
 } catch (e) {
   console.error('❌ Auth route failed:', e.message);
 }
