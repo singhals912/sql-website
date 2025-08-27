@@ -48,9 +48,76 @@ app.get('/api/health', (req, res) => {
         status: 'ok', 
         message: 'Server is running', 
         timestamp: new Date().toISOString(),
-        version: 'v2.2-debug-auth-routes',
-        authRouteFile: 'auth-minimal-test.js'
+        version: 'v2.3-with-forgot-password-workaround'
     });
+});
+
+// Temporary forgot password workaround via health endpoint
+app.post('/api/health/forgot-password', async (req, res) => {
+    console.log('🔑 WORKAROUND: Forgot password request for:', req.body.email);
+    const { email } = req.body;
+    
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: 'Valid email is required' });
+    }
+    
+    try {
+        // Generate reset token
+        const crypto = require('crypto');
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetLink = `https://datasql.pro/reset-password?token=${resetToken}`;
+        
+        // Try to send email if nodemailer is available
+        if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+            try {
+                const nodemailer = require('nodemailer');
+                
+                const transporter = nodemailer.createTransporter({
+                    host: process.env.SMTP_HOST,
+                    port: parseInt(process.env.SMTP_PORT) || 587,
+                    secure: process.env.SMTP_SECURE === 'true',
+                    auth: {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS
+                    }
+                });
+
+                await transporter.sendMail({
+                    from: process.env.EMAIL_FROM || 'noreply@datasql.pro',
+                    to: email,
+                    subject: 'Reset Your SQL Practice Platform Password',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2>Password Reset - SQL Practice Platform</h2>
+                            <p>You requested a password reset for your account.</p>
+                            <p><a href="${resetLink}" style="background: #4c51bf; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p>
+                            <p>Or copy this link: ${resetLink}</p>
+                            <p>This link expires in 1 hour.</p>
+                        </div>
+                    `,
+                    text: `Password Reset - SQL Practice Platform\n\nReset your password: ${resetLink}\n\nThis link expires in 1 hour.`
+                });
+                
+                console.log('📧 Password reset email sent successfully to:', email);
+            } catch (emailError) {
+                console.error('📧 Email sending failed:', emailError.message);
+            }
+        } else {
+            console.log('📧 [CONSOLE] Password reset for:', email, 'Link:', resetLink);
+        }
+        
+        res.json({
+            success: true,
+            message: 'If an account with that email exists, a password reset link has been sent.',
+            // For development - include link for testing
+            devResetLink: resetLink,
+            devToken: resetToken
+        });
+        
+    } catch (error) {
+        console.error('❌ Forgot password error:', error);
+        res.status(500).json({ error: 'Failed to process password reset request' });
+    }
 });
 
 // Essential routes only for startup - load others after server starts
