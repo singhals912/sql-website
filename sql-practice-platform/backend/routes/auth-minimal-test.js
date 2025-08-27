@@ -26,6 +26,14 @@ router.post('/forgot-password', async (req, res) => {
         const resetToken = crypto.randomBytes(32).toString('hex');
         const resetLink = `https://datasql.pro/reset-password?token=${resetToken}`;
         
+        // Store the reset token in a simple in-memory store (for demo)
+        // In production, this should be stored in database with expiry
+        global.resetTokens = global.resetTokens || {};
+        global.resetTokens[resetToken] = {
+            email: email,
+            expires: Date.now() + (60 * 60 * 1000) // 1 hour
+        };
+        
         // Try SendGrid SDK first
         if (process.env.SMTP_PASS && process.env.SMTP_PASS.startsWith('SG.')) {
             console.log('📧 Trying SendGrid SDK...');
@@ -70,6 +78,55 @@ router.post('/forgot-password', async (req, res) => {
     } catch (error) {
         console.error('❌ Forgot password error:', error);
         res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+});
+
+// Reset password endpoint
+router.post('/reset-password', async (req, res) => {
+    console.log('🔄 Reset password request');
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+    }
+    
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    
+    try {
+        // Check token from in-memory store (in production, use database)
+        global.resetTokens = global.resetTokens || {};
+        const tokenData = global.resetTokens[token];
+        
+        if (!tokenData) {
+            return res.status(400).json({ error: 'Invalid or expired reset token' });
+        }
+        
+        if (Date.now() > tokenData.expires) {
+            delete global.resetTokens[token];
+            return res.status(400).json({ error: 'Reset token has expired' });
+        }
+        
+        // For demo purposes, just return success
+        // In production, hash password and update database
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        
+        console.log(`🔄 Password reset successful for: ${tokenData.email}`);
+        console.log(`🔄 New hashed password: ${hashedPassword.substring(0, 20)}...`);
+        
+        // Clean up token
+        delete global.resetTokens[token];
+        
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Reset password error:', error);
+        res.status(500).json({ error: 'Failed to reset password' });
     }
 });
 
