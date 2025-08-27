@@ -11,6 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('he
 
 // In-memory user store for demo (production should use database)
 global.users = global.users || [];
+global.bookmarks = global.bookmarks || [];
+global.progress = global.progress || [];
 
 // Test endpoint
 router.get('/test', (req, res) => {
@@ -258,6 +260,114 @@ router.post('/reset-password', async (req, res) => {
         console.error('❌ Reset password error:', error);
         res.status(500).json({ error: 'Failed to reset password' });
     }
+});
+
+// Bookmarks endpoints
+router.get('/bookmarks', (req, res) => {
+    console.log('📚 Get bookmarks request');
+    const sessionId = req.headers['x-session-id'] || 'anonymous';
+    
+    // Filter bookmarks for this session
+    const userBookmarks = global.bookmarks.filter(b => b.sessionId === sessionId);
+    
+    // Mock some bookmark data if empty for demo
+    if (userBookmarks.length === 0) {
+        // Add a sample bookmark
+        const sampleBookmark = {
+            id: Date.now(),
+            sessionId,
+            problemId: 1,
+            title: 'Basic SELECT Query',
+            difficulty: 'easy',
+            category: 'basics',
+            type: 'favorite',
+            createdAt: new Date().toISOString(),
+            notes: ''
+        };
+        global.bookmarks.push(sampleBookmark);
+        userBookmarks.push(sampleBookmark);
+    }
+    
+    res.json({
+        success: true,
+        bookmarks: userBookmarks,
+        summary: {
+            total: userBookmarks.length,
+            favorites: userBookmarks.filter(b => b.type === 'favorite').length,
+            reviewLater: userBookmarks.filter(b => b.type === 'review_later').length,
+            challenging: userBookmarks.filter(b => b.type === 'challenging').length
+        }
+    });
+});
+
+router.post('/bookmarks', (req, res) => {
+    console.log('📚 Add bookmark request');
+    const sessionId = req.headers['x-session-id'] || 'anonymous';
+    const { problemId, title, difficulty, category, type = 'favorite', notes = '' } = req.body;
+    
+    const bookmark = {
+        id: Date.now(),
+        sessionId,
+        problemId,
+        title: title || `Problem #${problemId}`,
+        difficulty: difficulty || 'medium',
+        category: category || 'general',
+        type,
+        notes,
+        createdAt: new Date().toISOString()
+    };
+    
+    global.bookmarks.push(bookmark);
+    
+    res.json({
+        success: true,
+        message: 'Bookmark added successfully',
+        bookmark
+    });
+});
+
+// Progress endpoints  
+router.get('/progress', (req, res) => {
+    console.log('📊 Get progress request');
+    const sessionId = req.headers['x-session-id'] || 'anonymous';
+    
+    // Filter progress for this session
+    const userProgress = global.progress.filter(p => p.sessionId === sessionId);
+    
+    // Mock some progress data if empty for demo
+    if (userProgress.length === 0) {
+        const sampleProgress = {
+            id: Date.now(),
+            sessionId,
+            problemId: 1,
+            title: 'Basic SELECT Query',
+            attempts: 1,
+            correctAttempts: 1,
+            bestTime: '19ms',
+            lastAttempted: new Date().toISOString(),
+            status: 'completed',
+            difficulty: 'medium'
+        };
+        global.progress.push(sampleProgress);
+        userProgress.push(sampleProgress);
+    }
+    
+    const totalProblems = 70; // Mock total
+    const solved = userProgress.filter(p => p.status === 'completed').length;
+    const totalAttempts = userProgress.reduce((sum, p) => sum + p.attempts, 0);
+    const correctAttempts = userProgress.reduce((sum, p) => sum + p.correctAttempts, 0);
+    
+    res.json({
+        success: true,
+        stats: {
+            problemsSolved: solved,
+            totalProblems: totalProblems,
+            completionRate: Math.round((solved / totalProblems) * 100),
+            totalAttempts: totalAttempts,
+            accuracy: totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0
+        },
+        recentActivity: userProgress.slice(-10).reverse() // Last 10, most recent first
+    });
 });
 
 console.log('✅ Minimal auth test routes loaded');
