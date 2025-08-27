@@ -58,20 +58,39 @@ const LearningPathsPage = () => {
 
   const handleStartPath = async (pathId) => {
     try {
+      console.log(`🚀 Starting learning path ${pathId}`);
+      setStartingPath(pathId);
+      
       // Get the detailed learning path with steps
       const pathDetails = await LearningPathService.getLearningPath(pathId);
+      
+      console.log(`🔍 Path details for ${pathId}:`, {
+        hasPathDetails: !!pathDetails,
+        hasSteps: !!(pathDetails && pathDetails.steps),
+        stepsLength: pathDetails && pathDetails.steps ? pathDetails.steps.length : 0,
+        firstStep: pathDetails && pathDetails.steps && pathDetails.steps[0] ? {
+          numeric_id: pathDetails.steps[0].numeric_id,
+          problem_numeric_id: pathDetails.steps[0].problem_numeric_id,
+          title: pathDetails.steps[0].title
+        } : null
+      });
       
       if (pathDetails && pathDetails.steps && pathDetails.steps.length > 0) {
         // Navigate to the first problem in the learning path
         const firstStep = pathDetails.steps[0];
-        navigate(`/practice/${firstStep.problem_numeric_id}?learningPath=${pathId}`);
+        const targetUrl = `/practice/${firstStep.problem_numeric_id}?learningPath=${pathId}`;
+        console.log(`✅ Navigating to: ${targetUrl}`);
+        navigate(targetUrl);
       } else {
+        console.warn(`⚠️ Learning path ${pathId} has no steps, falling back to problems page`);
         // Fallback to problems page
         navigate(`/problems`);
       }
     } catch (error) {
-      console.error('Error starting learning path:', error);
+      console.error(`❌ Error starting learning path ${pathId}:`, error);
       navigate(`/problems`);
+    } finally {
+      setStartingPath(null);
     }
   };
 

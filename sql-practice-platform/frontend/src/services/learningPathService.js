@@ -42,15 +42,25 @@ class LearningPathService {
   // Get specific learning path with steps
   static async getLearningPath(pathId) {
     try {
+      console.log(`🎯 Fetching learning path ${pathId} from:`, `${this.baseURL}/learning-paths/${pathId}`);
       const response = await fetch(`${this.baseURL}/learning-paths/${pathId}`);
       const data = await response.json();
       
+      console.log(`🎯 Learning path ${pathId} response:`, {
+        hasTitle: !!data.title,
+        hasProblems: !!data.problems,
+        problemsLength: data.problems ? data.problems.length : 0,
+        keys: Object.keys(data)
+      });
+      
       // Handle direct response format from updated API
       if (data.error) {
+        console.error(`❌ Learning path ${pathId} error:`, data.error);
         throw new Error(data.error);
       } else if (data.title && data.problems) {
+        console.log(`✅ Learning path ${pathId} loaded successfully with ${data.problems.length} problems`);
         // Convert 'problems' to 'steps' for frontend compatibility
-        return {
+        const result = {
           ...data,
           steps: data.problems.map(problem => ({
             ...problem,
@@ -58,7 +68,16 @@ class LearningPathService {
             step_order: problem.stepOrder
           }))
         };
+        console.log(`✅ Learning path ${pathId} converted steps:`, result.steps.map(s => ({ 
+          id: s.problem_numeric_id, 
+          title: s.title 
+        })));
+        return result;
       } else {
+        console.error(`❌ Learning path ${pathId} missing required fields:`, { 
+          hasTitle: !!data.title, 
+          hasProblems: !!data.problems 
+        });
         throw new Error('Failed to fetch learning path');
       }
     } catch (error) {
