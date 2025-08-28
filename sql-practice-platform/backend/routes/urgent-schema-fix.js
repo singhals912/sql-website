@@ -118,10 +118,10 @@ INSERT INTO ubs_private_banking VALUES
     }
 });
 
-// Apply ALL critical fixes at once
-router.post('/apply-all-urgent-fixes', async (req, res) => {
+// Apply ALL problems 61-70 schemas
+router.post('/apply-all-schemas-61-70', async (req, res) => {
     try {
-        console.log('🚨 APPLYING ALL URGENT SCHEMA FIXES...');
+        console.log('🚨 APPLYING ALL SCHEMAS 61-70...');
         
         const fixes = [
             {
@@ -150,6 +150,81 @@ INSERT INTO ubs_private_banking VALUES
 (4, 'Ultra High Net Worth', 75000000, 'Private Equity Focus', 0.1410, 0.0850, 0.0200, 0.0950, 8.9, 45.0, 9.3),
 (5, 'Family Office', 180000000, 'Hedge Fund Platform', 0.1380, 0.0850, 0.0200, 0.0820, 9.1, 38.5, 9.6),
 (6, 'Ultra High Net Worth', 95000000, 'ESG Impact', 0.1150, 0.0850, 0.0200, 0.0880, 8.7, 25.0, 8.9);`
+            },
+            {
+                problemId: 62,
+                name: 'Uber Market Analytics',
+                setupSql: `-- Uber Market Analytics Database
+CREATE TABLE uber_rides (
+    ride_id INTEGER,
+    market_name VARCHAR(50),
+    service_type VARCHAR(30),
+    ride_distance_km DECIMAL(8,2),
+    ride_duration_minutes INTEGER,
+    ride_revenue DECIMAL(8,2),
+    driver_earnings DECIMAL(8,2),
+    surge_multiplier DECIMAL(4,2),
+    ride_date DATE
+);
+
+-- Sample Uber ride data
+INSERT INTO uber_rides VALUES
+(1, 'San Francisco', 'UberX', 8.5, 25, 18.50, 13.88, 1.2, '2024-06-01'),
+(2, 'San Francisco', 'UberPool', 12.2, 35, 12.80, 9.60, 1.0, '2024-06-01'),
+(3, 'New York', 'UberBlack', 6.8, 20, 24.00, 18.00, 1.5, '2024-06-01'),
+(4, 'New York', 'UberX', 15.3, 42, 22.50, 16.88, 1.3, '2024-06-01'),
+(5, 'Los Angeles', 'UberX', 18.7, 38, 16.20, 12.15, 1.1, '2024-06-01'),
+(6, 'San Francisco', 'UberBlack', 4.2, 15, 19.50, 14.63, 1.0, '2024-06-01');`
+            },
+            {
+                problemId: 63,
+                name: 'Tesla Energy Storage',
+                setupSql: `-- Tesla Energy Storage Analytics Database
+CREATE TABLE tesla_energy_storage (
+    installation_id INTEGER,
+    project_type VARCHAR(50),
+    location VARCHAR(50),
+    battery_capacity_mwh DECIMAL(8,2),
+    energy_discharged_mwh DECIMAL(8,2),
+    grid_revenue DECIMAL(10,2),
+    efficiency_rating DECIMAL(4,2),
+    installation_date DATE,
+    grid_stability_score DECIMAL(4,2)
+);
+
+-- Sample Tesla energy storage data
+INSERT INTO tesla_energy_storage VALUES
+(1, 'Utility Scale', 'California', 129.6, 118.2, 285000, 95.8, '2023-03-15', 9.2),
+(2, 'Commercial', 'Texas', 25.4, 23.1, 58500, 94.2, '2023-05-20', 8.9),
+(3, 'Utility Scale', 'Australia', 194.5, 180.8, 420000, 96.1, '2023-01-10', 9.5),
+(4, 'Commercial', 'New York', 15.8, 14.5, 35200, 93.8, '2023-07-08', 8.7),
+(5, 'Residential', 'Florida', 2.1, 1.9, 4800, 92.5, '2023-09-12', 8.4),
+(6, 'Utility Scale', 'Nevada', 165.2, 152.4, 380000, 95.3, '2023-02-28', 9.1);`
+            },
+            {
+                problemId: 64,
+                name: 'Airbnb Host Revenue',
+                setupSql: `-- Airbnb Host Revenue Analytics Database
+CREATE TABLE airbnb_hosts (
+    host_id INTEGER,
+    property_type VARCHAR(50),
+    neighborhood VARCHAR(50),
+    listing_count INTEGER,
+    avg_nightly_rate DECIMAL(8,2),
+    occupancy_rate DECIMAL(5,2),
+    monthly_revenue DECIMAL(10,2),
+    guest_rating DECIMAL(3,2),
+    superhost_status BOOLEAN
+);
+
+-- Sample Airbnb host data
+INSERT INTO airbnb_hosts VALUES
+(1, 'Entire Apartment', 'Manhattan', 3, 245.00, 0.85, 18750, 4.8, true),
+(2, 'Private Room', 'Brooklyn', 2, 125.00, 0.78, 5850, 4.6, false),
+(3, 'Entire House', 'Los Angeles', 1, 320.00, 0.72, 6912, 4.9, true),
+(4, 'Entire Apartment', 'San Francisco', 2, 280.00, 0.80, 13440, 4.7, true),
+(5, 'Private Room', 'Miami', 1, 95.00, 0.68, 1938, 4.4, false),
+(6, 'Entire House', 'Austin', 1, 185.00, 0.75, 4162.5, 4.8, false);`
             },
             {
                 problemId: 65,
