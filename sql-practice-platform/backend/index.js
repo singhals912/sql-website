@@ -227,6 +227,13 @@ try {
 }
 
 try {
+  app.use('/api/fix-schemas', require('./routes/fix-schemas-comprehensive'));
+  console.log('✅ Fix schemas comprehensive route loaded');
+} catch (e) {
+  console.error('❌ Fix schemas comprehensive route failed:', e.message);
+}
+
+try {
   app.use('/api/debug', require('./routes/debug-schemas'));
   console.log('✅ Debug schemas route loaded');
 } catch (e) {
