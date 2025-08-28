@@ -198,6 +198,34 @@ try {
   console.error('❌ Fix advanced problems route failed:', e.message);
 }
 
+try {
+  app.use('/api/fix-batch1', require('./routes/fix-remaining-problems-batch1'));
+  console.log('✅ Fix remaining problems batch 1 route loaded');
+} catch (e) {
+  console.error('❌ Fix remaining problems batch 1 route failed:', e.message);
+}
+
+try {
+  app.use('/api/fix-batch2', require('./routes/fix-remaining-problems-batch2'));
+  console.log('✅ Fix remaining problems batch 2 route loaded');
+} catch (e) {
+  console.error('❌ Fix remaining problems batch 2 route failed:', e.message);
+}
+
+try {
+  app.use('/api/fix-batch3', require('./routes/fix-remaining-problems-batch3'));
+  console.log('✅ Fix remaining problems batch 3 route loaded');
+} catch (e) {
+  console.error('❌ Fix remaining problems batch 3 route failed:', e.message);
+}
+
+try {
+  app.use('/api/fix-final', require('./routes/fix-final-problems'));
+  console.log('✅ Fix final problems route loaded');
+} catch (e) {
+  console.error('❌ Fix final problems route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
