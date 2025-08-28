@@ -102,7 +102,8 @@ INSERT INTO renaissance_strategies VALUES
         
         console.log('✅ Problem 50 solution upgraded to proper quantitative finance analytics');
         
-        // ALSO FIX PROBLEM 65 (VANGUARD) WHILE WE'RE HERE
+        // CRITICAL FIX: Problem 65 (Vanguard) schema - MUST WORK
+        let problem65Status = 'FAILED';
         try {
             const vanguardSetupSql = `-- Vanguard Index Fund Performance Database
 CREATE TABLE vanguard_index_funds (
@@ -126,32 +127,57 @@ INSERT INTO vanguard_index_funds VALUES
 ('VTIAX', 'Total International Stock', 'FTSE Global All Cap ex US', '2024-02-01', 29.12, 29.18, 11.4, 585.7, 11.0),
 ('VTIAX', 'Total International Stock', 'FTSE Global All Cap ex US', '2024-03-01', 28.89, 28.96, 13.2, 582.1, 11.0);`;
 
-            // Fix Problem 65 schema
+            console.log('🔧 ATTEMPTING to fix Problem 65 schema...');
+            
+            // Get Problem 65 ID
             const problem65Result = await pool.query('SELECT id FROM problems WHERE numeric_id = 65');
             if (problem65Result.rows.length > 0) {
                 const problem65Id = problem65Result.rows[0].id;
-                await pool.query(`
+                console.log(`Found Problem 65 with ID: ${problem65Id}`);
+                
+                // First try UPDATE
+                const updateResult = await pool.query(`
                     UPDATE problem_schemas 
                     SET setup_sql = $1
                     WHERE problem_id = $2
                 `, [vanguardSetupSql, problem65Id]);
-                console.log('✅ ALSO FIXED: Problem 65 (Vanguard) schema updated!');
+                
+                if (updateResult.rowCount > 0) {
+                    console.log(`✅ UPDATED ${updateResult.rowCount} schema records for Problem 65`);
+                    problem65Status = 'UPDATED';
+                } else {
+                    // If no rows updated, try INSERT
+                    console.log('No rows updated, trying INSERT...');
+                    const insertResult = await pool.query(`
+                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
+                        VALUES ($1, 'postgresql', $2, NOW())
+                        ON CONFLICT (problem_id, sql_dialect) DO UPDATE SET setup_sql = $2
+                    `, [problem65Id, vanguardSetupSql]);
+                    
+                    console.log(`✅ INSERTED/UPSERTED schema for Problem 65`);
+                    problem65Status = 'INSERTED';
+                }
+            } else {
+                console.error('Problem 65 not found in problems table!');
+                problem65Status = 'PROBLEM_NOT_FOUND';
             }
         } catch (error) {
-            console.error('Warning: Could not fix Problem 65:', error.message);
+            console.error('❌ ERROR fixing Problem 65:', error.message);
+            problem65Status = `ERROR: ${error.message}`;
         }
         
         res.json({
             success: true,
-            message: 'Problem 50 solution upgraded to proper Renaissance Technologies analytics + BONUS: Problem 65 Vanguard schema also fixed!',
+            message: `Problem 50 upgraded + Problem 65 Vanguard schema fix: ${problem65Status}`,
             solution_preview: properSolution.substring(0, 200) + '...',
+            problem65Status: problem65Status,
             improvements: [
                 'Added Sharpe ratio calculations with proper risk-free rate',
                 'Implemented maximum drawdown analysis',
                 'Added volatility and annualized return metrics',
                 'Filtered for high-performance strategies (>2.0 Sharpe, <8% drawdown)',
                 'Proper quantitative finance business logic',
-                'BONUS: Fixed Problem 65 Vanguard schema with CREATE TABLE statements'
+                `CRITICAL: Problem 65 Vanguard schema status: ${problem65Status}`
             ]
         });
         
