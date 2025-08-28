@@ -247,13 +247,6 @@ try {
   console.error('❌ Debug schemas route failed:', e.message);
 }
 
-try {
-  app.use('/api/fix-problems-61-70-schemas', require('./routes/fix-problems-61-70-schemas'));
-  console.log('✅ Fix problems 61-70 schemas route loaded');
-} catch (e) {
-  console.error('❌ Fix problems 61-70 schemas route failed:', e.message);
-}
-
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
