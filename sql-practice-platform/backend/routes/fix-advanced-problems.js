@@ -43,15 +43,18 @@ ORDER BY sharpe_ratio DESC;`;
 
         const expectedOutput = `[{\"strategy_name\":\"Medallion Statistical Arbitrage\",\"asset_class\":\"Equity\",\"sharpe_ratio\":\"3.245\",\"annualized_return\":\"0.3580\",\"annualized_volatility\":\"0.1102\",\"max_drawdown_pct\":\"5.20\",\"trading_days\":\"1260\"},{\"strategy_name\":\"Quantitative Momentum\",\"asset_class\":\"Fixed Income\",\"sharpe_ratio\":\"2.876\",\"annualized_return\":\"0.2890\",\"annualized_volatility\":\"0.1005\",\"max_drawdown_pct\":\"6.80\",\"trading_days\":\"1260\"},{\"strategy_name\":\"Mean Reversion Alpha\",\"asset_class\":\"Commodities\",\"sharpe_ratio\":\"2.455\",\"annualized_return\":\"0.2220\",\"annualized_volatility\":\"0.0904\",\"max_drawdown_pct\":\"7.10\",\"trading_days\":\"1260\"}]`;
 
-        // Update the solution
+        // Update or insert the solution (UPSERT)
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 50');
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         console.log('✅ Problem 50 solution upgraded to proper quantitative finance analytics');
         
@@ -132,15 +135,18 @@ LIMIT 20;`;
 
         const expectedOutput = `[{\"user_id\":\"101\",\"recommended_movie\":\"Mad Max: Fury Road\",\"rating\":\"8.7\",\"year_released\":\"2015\",\"recommendation_reason\":\"Action preference match\"},{\"user_id\":\"101\",\"recommended_movie\":\"John Wick\",\"rating\":\"8.4\",\"year_released\":\"2014\",\"recommendation_reason\":\"Action preference match\"},{\"user_id\":\"102\",\"recommended_movie\":\"The Dark Knight\",\"rating\":\"9.0\",\"year_released\":\"2008\",\"recommendation_reason\":\"Action preference match\"},{\"user_id\":\"102\",\"recommended_movie\":\"Gladiator\",\"rating\":\"8.5\",\"year_released\":\"2000\",\"recommendation_reason\":\"Action preference match\"}]`;
 
-        // Update the solution
+        // Update or insert the solution (UPSERT)
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 43');
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         console.log('✅ Problem 43 solution upgraded to proper recommendation engine logic');
         
@@ -208,15 +214,18 @@ ORDER BY ABS(var_95) DESC, pnl_volatility DESC;`;
 
         const expectedOutput = `[{\"trading_desk\":\"Fixed Income Derivatives\",\"derivative_type\":\"Interest Rate Swaps\",\"underlying_asset\":\"USD Treasuries\",\"notional_millions\":\"12500.00\",\"position_count\":\"145\",\"avg_daily_pnl_millions\":\"2.450\",\"var_95_millions\":\"85.30\",\"sharpe_like_ratio\":\"1.245\"},{\"trading_desk\":\"Equity Derivatives\",\"derivative_type\":\"Options\",\"underlying_asset\":\"S&P 500\",\"notional_millions\":\"8750.00\",\"position_count\":\"230\",\"avg_daily_pnl_millions\":\"1.890\",\"var_95_millions\":\"72.80\",\"sharpe_like_ratio\":\"1.567\"}]`;
 
-        // Update the solution
+        // Update or insert the solution (UPSERT)
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 37');
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         console.log('✅ Problem 37 solution upgraded to proper derivatives risk analytics');
         
@@ -298,10 +307,13 @@ ORDER BY avg_sharpe_ratio DESC;`;
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         res.json({
             success: true,
@@ -371,10 +383,13 @@ ORDER BY avg_alpha_bp DESC, avg_sharpe_ratio DESC;`;
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         res.json({
             success: true,
@@ -445,10 +460,13 @@ ORDER BY total_volume DESC, avg_spread_capture DESC;`;
         const problemId = problemResult.rows[0].id;
         
         await pool.query(`
-            UPDATE problem_schemas 
-            SET solution_sql = $1, expected_output = $2
-            WHERE problem_id = $3
-        `, [properSolution, expectedOutput, problemId]);
+            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
+            VALUES ($1, 'default', $2, $3, NOW())
+            ON CONFLICT (problem_id) DO UPDATE SET
+                solution_sql = $2,
+                expected_output = $3,
+                created_at = NOW()
+        `, [problemId, properSolution, expectedOutput]);
         
         res.json({
             success: true,
