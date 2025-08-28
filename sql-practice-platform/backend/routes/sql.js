@@ -114,7 +114,9 @@ router.get('/problems/:id', async (req, res) => {
             const schemaQuery = `
                 SELECT * FROM problem_schemas 
                 WHERE problem_id = $1
-                ORDER BY id
+                ORDER BY 
+                    CASE WHEN sql_dialect = 'postgresql' THEN 1 ELSE 2 END,
+                    id
             `;
             schemaResult = await pool.query(schemaQuery, [problem.id]);
         } catch (schemaError) {
