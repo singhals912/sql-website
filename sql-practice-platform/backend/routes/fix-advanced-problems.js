@@ -47,14 +47,20 @@ ORDER BY sharpe_ratio DESC;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 50');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         console.log('✅ Problem 50 solution upgraded to proper quantitative finance analytics');
         
@@ -139,14 +145,20 @@ LIMIT 20;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 43');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         console.log('✅ Problem 43 solution upgraded to proper recommendation engine logic');
         
@@ -218,14 +230,20 @@ ORDER BY ABS(var_95) DESC, pnl_volatility DESC;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 37');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         console.log('✅ Problem 37 solution upgraded to proper derivatives risk analytics');
         
@@ -306,14 +324,20 @@ ORDER BY avg_sharpe_ratio DESC;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 60');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         res.json({
             success: true,
@@ -382,14 +406,20 @@ ORDER BY avg_alpha_bp DESC, avg_sharpe_ratio DESC;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 61');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         res.json({
             success: true,
@@ -459,14 +489,20 @@ ORDER BY total_volume DESC, avg_spread_capture DESC;`;
         const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 42');
         const problemId = problemResult.rows[0].id;
         
-        await pool.query(`
-            INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, created_at)
-            VALUES ($1, 'default', $2, $3, NOW())
-            ON CONFLICT (problem_id) DO UPDATE SET
-                solution_sql = $2,
-                expected_output = $3,
-                created_at = NOW()
+        // First try to update, then insert if no rows affected
+        const updateResult = await pool.query(`
+            UPDATE problem_schemas 
+            SET solution_sql = $2, expected_output = $3
+            WHERE problem_id = $1
         `, [problemId, properSolution, expectedOutput]);
+        
+        if (updateResult.rowCount === 0) {
+            // No existing row, so insert
+            await pool.query(`
+                INSERT INTO problem_schemas (problem_id, schema_name, solution_sql, expected_output, setup_sql, teardown_sql, sample_data, created_at)
+                VALUES ($1, 'default', $2, $3, '', '', '', NOW())
+            `, [problemId, properSolution, expectedOutput]);
+        }
         
         res.json({
             success: true,
