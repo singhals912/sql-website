@@ -553,6 +553,102 @@ ORDER BY total_volume DESC, avg_spread_capture DESC;`;
     }
 });
 
+// Fix Problem 61: UBS Private Banking - Add Schema ONLY
+router.post('/fix-schema-61', async (req, res) => {
+    try {
+        console.log('🔧 Adding schema for Problem 61: UBS Private Banking...');
+        
+        const setupSql = `-- UBS Private Banking Database
+CREATE TABLE ubs_private_banking (
+    client_id INTEGER,
+    client_segment VARCHAR(50),
+    portfolio_value DECIMAL(15,2),
+    investment_strategy VARCHAR(100),
+    portfolio_return DECIMAL(6,4),
+    market_benchmark DECIMAL(6,4),
+    risk_free_rate DECIMAL(5,4),
+    portfolio_volatility DECIMAL(6,4),
+    diversification_score DECIMAL(4,2),
+    alternative_allocation_pct DECIMAL(5,2),
+    client_satisfaction_score DECIMAL(3,2)
+);
+
+-- Sample UBS Private Banking data
+INSERT INTO ubs_private_banking VALUES
+(1, 'Ultra High Net Worth', 85000000, 'Alternative Investments', 0.1250, 0.0850, 0.0200, 0.0920, 9.2, 35.5, 9.5),
+(2, 'Ultra High Net Worth', 120000000, 'Growth Equity', 0.1180, 0.0850, 0.0200, 0.0850, 8.8, 28.0, 9.1),
+(3, 'Family Office', 250000000, 'Diversified Alpha', 0.1320, 0.0850, 0.0200, 0.0780, 9.5, 42.0, 9.8),
+(4, 'Ultra High Net Worth', 75000000, 'Private Equity Focus', 0.1410, 0.0850, 0.0200, 0.0950, 8.9, 45.0, 9.3),
+(5, 'Family Office', 180000000, 'Hedge Fund Platform', 0.1380, 0.0850, 0.0200, 0.0820, 9.1, 38.5, 9.6),
+(6, 'Ultra High Net Worth', 95000000, 'ESG Impact', 0.1150, 0.0850, 0.0200, 0.0880, 8.7, 25.0, 8.9);`;
+
+        const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 61');
+        const problemId = problemResult.rows[0].id;
+        
+        await pool.query(`
+            UPDATE problem_schemas 
+            SET setup_sql = $1
+            WHERE problem_id = $2
+        `, [setupSql, problemId]);
+        
+        res.json({
+            success: true,
+            message: 'Problem 61 schema added successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error adding schema for Problem 61:', error);
+        res.status(500).json({ error: 'Failed to add schema for Problem 61', details: error.message });
+    }
+});
+
+// Fix Problem 62: Uber Market Analytics - Add Schema ONLY  
+router.post('/fix-schema-62', async (req, res) => {
+    try {
+        console.log('🔧 Adding schema for Problem 62: Uber Market Analytics...');
+        
+        const setupSql = `-- Uber Market Analytics Database
+CREATE TABLE uber_rides (
+    ride_id INTEGER,
+    market_name VARCHAR(50),
+    service_type VARCHAR(30),
+    ride_distance_km DECIMAL(8,2),
+    ride_duration_minutes INTEGER,
+    ride_revenue DECIMAL(8,2),
+    driver_earnings DECIMAL(8,2),
+    surge_multiplier DECIMAL(4,2),
+    ride_date DATE
+);
+
+-- Sample Uber ride data
+INSERT INTO uber_rides VALUES
+(1, 'San Francisco', 'UberX', 8.5, 25, 18.50, 13.88, 1.2, '2024-06-01'),
+(2, 'San Francisco', 'UberPool', 12.2, 35, 12.80, 9.60, 1.0, '2024-06-01'),
+(3, 'New York', 'UberBlack', 6.8, 20, 24.00, 18.00, 1.5, '2024-06-01'),
+(4, 'New York', 'UberX', 15.3, 42, 22.50, 16.88, 1.3, '2024-06-01'),
+(5, 'Los Angeles', 'UberX', 18.7, 38, 16.20, 12.15, 1.1, '2024-06-01'),
+(6, 'San Francisco', 'UberBlack', 4.2, 15, 19.50, 14.63, 1.0, '2024-06-01');`;
+
+        const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 62');
+        const problemId = problemResult.rows[0].id;
+        
+        await pool.query(`
+            UPDATE problem_schemas 
+            SET setup_sql = $1
+            WHERE problem_id = $2
+        `, [setupSql, problemId]);
+        
+        res.json({
+            success: true,
+            message: 'Problem 62 schema added successfully'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error adding schema for Problem 62:', error);
+        res.status(500).json({ error: 'Failed to add schema for Problem 62', details: error.message });
+    }
+});
+
 // Batch fix all critical advanced problems
 router.post('/fix-all-critical', async (req, res) => {
     try {
