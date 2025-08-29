@@ -102,6 +102,252 @@ INSERT INTO renaissance_strategies VALUES
         
         console.log('✅ Problem 50 solution upgraded to proper quantitative finance analytics');
         
+        // FIX ALL PROBLEMS 61-70 with complete schema structure
+        const problemsToFix = [
+            {
+                problemId: 61,
+                name: 'UBS Private Banking',
+                setupSql: `-- UBS Private Banking Database
+CREATE TABLE ubs_private_banking (
+    client_id INTEGER,
+    client_segment VARCHAR(50),
+    portfolio_value DECIMAL(15,2),
+    investment_strategy VARCHAR(100),
+    portfolio_return DECIMAL(6,4),
+    market_benchmark DECIMAL(6,4),
+    risk_free_rate DECIMAL(5,4),
+    portfolio_volatility DECIMAL(6,4),
+    diversification_score DECIMAL(4,2),
+    alternative_allocation_pct DECIMAL(5,2),
+    client_satisfaction_score DECIMAL(3,2)
+);
+
+INSERT INTO ubs_private_banking VALUES
+(1, 'Ultra High Net Worth', 85000000, 'Alternative Investments', 0.1250, 0.0850, 0.0200, 0.0920, 9.2, 35.5, 9.5),
+(2, 'Ultra High Net Worth', 120000000, 'Growth Equity', 0.1180, 0.0850, 0.0200, 0.0850, 8.8, 28.0, 9.1),
+(3, 'Family Office', 250000000, 'Diversified Alpha', 0.1320, 0.0850, 0.0200, 0.0780, 9.5, 42.0, 9.8);`,
+                solutionSql: `SELECT client_segment, AVG(portfolio_return) as avg_return FROM ubs_private_banking GROUP BY client_segment ORDER BY avg_return DESC;`,
+                expectedOutput: `[{"client_segment":"Family Office","avg_return":"0.1320"},{"client_segment":"Ultra High Net Worth","avg_return":"0.1215"}]`
+            },
+            {
+                problemId: 62,
+                name: 'Uber Market Analytics',
+                setupSql: `-- Uber Market Analytics Database
+CREATE TABLE uber_rides (
+    ride_id INTEGER,
+    market_name VARCHAR(50),
+    service_type VARCHAR(30),
+    ride_distance_km DECIMAL(8,2),
+    ride_duration_minutes INTEGER,
+    ride_revenue DECIMAL(8,2),
+    driver_earnings DECIMAL(8,2),
+    surge_multiplier DECIMAL(4,2),
+    ride_date DATE
+);
+
+INSERT INTO uber_rides VALUES
+(1, 'San Francisco', 'UberX', 8.5, 25, 18.50, 13.88, 1.2, '2024-06-01'),
+(2, 'San Francisco', 'UberPool', 12.2, 35, 12.80, 9.60, 1.0, '2024-06-01'),
+(3, 'New York', 'UberBlack', 6.8, 20, 24.00, 18.00, 1.5, '2024-06-01');`,
+                solutionSql: `SELECT market_name, AVG(ride_revenue) as avg_revenue FROM uber_rides GROUP BY market_name ORDER BY avg_revenue DESC;`,
+                expectedOutput: `[{"market_name":"New York","avg_revenue":"24.00"},{"market_name":"San Francisco","avg_revenue":"15.65"}]`
+            },
+            {
+                problemId: 63,
+                name: 'Tesla Energy Storage',
+                setupSql: `-- Tesla Energy Storage Analytics Database
+CREATE TABLE tesla_energy_storage (
+    installation_id INTEGER,
+    project_type VARCHAR(50),
+    location VARCHAR(50),
+    battery_capacity_mwh DECIMAL(8,2),
+    energy_discharged_mwh DECIMAL(8,2),
+    grid_revenue DECIMAL(10,2),
+    efficiency_rating DECIMAL(4,2),
+    installation_date DATE,
+    grid_stability_score DECIMAL(4,2)
+);
+
+INSERT INTO tesla_energy_storage VALUES
+(1, 'Utility Scale', 'California', 129.6, 118.2, 285000, 95.8, '2023-03-15', 9.2),
+(2, 'Commercial', 'Texas', 25.4, 23.1, 58500, 94.2, '2023-05-20', 8.9),
+(3, 'Utility Scale', 'Australia', 194.5, 180.8, 420000, 96.1, '2023-01-10', 9.5);`,
+                solutionSql: `SELECT project_type, AVG(efficiency_rating) as avg_efficiency FROM tesla_energy_storage GROUP BY project_type ORDER BY avg_efficiency DESC;`,
+                expectedOutput: `[{"project_type":"Utility Scale","avg_efficiency":"95.95"},{"project_type":"Commercial","avg_efficiency":"94.20"}]`
+            },
+            {
+                problemId: 64,
+                name: 'Airbnb Host Revenue',
+                setupSql: `-- Airbnb Host Revenue Analytics Database
+CREATE TABLE airbnb_hosts (
+    host_id INTEGER,
+    property_type VARCHAR(50),
+    neighborhood VARCHAR(50),
+    listing_count INTEGER,
+    avg_nightly_rate DECIMAL(8,2),
+    occupancy_rate DECIMAL(5,2),
+    monthly_revenue DECIMAL(10,2),
+    guest_rating DECIMAL(3,2),
+    superhost_status BOOLEAN
+);
+
+INSERT INTO airbnb_hosts VALUES
+(1, 'Entire Apartment', 'Manhattan', 3, 245.00, 0.85, 18750, 4.8, true),
+(2, 'Private Room', 'Brooklyn', 2, 125.00, 0.78, 5850, 4.6, false),
+(3, 'Entire House', 'Los Angeles', 1, 320.00, 0.72, 6912, 4.9, true);`,
+                solutionSql: `SELECT property_type, AVG(monthly_revenue) as avg_revenue FROM airbnb_hosts GROUP BY property_type ORDER BY avg_revenue DESC;`,
+                expectedOutput: `[{"property_type":"Entire Apartment","avg_revenue":"18750.00"},{"property_type":"Entire House","avg_revenue":"6912.00"}]`
+            },
+            {
+                problemId: 66,
+                name: 'Spotify Music Streaming',
+                setupSql: `-- Spotify Music Streaming Analytics Database
+CREATE TABLE spotify_streams (
+    track_id INTEGER,
+    artist_name VARCHAR(100),
+    genre VARCHAR(50),
+    monthly_streams INTEGER,
+    skip_rate DECIMAL(5,2),
+    playlist_additions INTEGER,
+    user_rating DECIMAL(3,2),
+    release_date DATE,
+    label VARCHAR(100)
+);
+
+INSERT INTO spotify_streams VALUES
+(1, 'Taylor Swift', 'Pop', 125000000, 0.12, 450000, 4.8, '2023-10-27', 'Republic Records'),
+(2, 'Bad Bunny', 'Reggaeton', 98000000, 0.08, 380000, 4.7, '2023-01-13', 'Rimas Entertainment'),
+(3, 'Drake', 'Hip Hop', 87000000, 0.15, 320000, 4.5, '2023-06-16', 'OVO Sound');`,
+                solutionSql: `SELECT genre, AVG(monthly_streams) as avg_streams FROM spotify_streams GROUP BY genre ORDER BY avg_streams DESC;`,
+                expectedOutput: `[{"genre":"Pop","avg_streams":"125000000"},{"genre":"Reggaeton","avg_streams":"98000000"}]`
+            },
+            {
+                problemId: 67,
+                name: 'Netflix Content Performance',
+                setupSql: `-- Netflix Content Performance Analytics Database
+CREATE TABLE netflix_content (
+    content_id INTEGER,
+    title VARCHAR(100),
+    content_type VARCHAR(20),
+    genre VARCHAR(50),
+    release_date DATE,
+    total_hours_watched BIGINT,
+    completion_rate DECIMAL(5,2),
+    user_rating DECIMAL(3,2),
+    production_budget DECIMAL(12,2),
+    global_reach_countries INTEGER
+);
+
+INSERT INTO netflix_content VALUES
+(1, 'Wednesday', 'Series', 'Horror Comedy', '2022-11-23', 1650000000, 0.78, 4.6, 75000000, 94),
+(2, 'Stranger Things 4', 'Series', 'Sci-Fi', '2022-05-27', 1350000000, 0.82, 4.8, 30000000, 83),
+(3, 'Glass Onion', 'Movie', 'Mystery', '2022-12-23', 820000000, 0.74, 4.2, 40000000, 78);`,
+                solutionSql: `SELECT content_type, AVG(user_rating) as avg_rating FROM netflix_content GROUP BY content_type ORDER BY avg_rating DESC;`,
+                expectedOutput: `[{"content_type":"Series","avg_rating":"4.70"},{"content_type":"Movie","avg_rating":"4.20"}]`
+            },
+            {
+                problemId: 68,
+                name: 'Amazon Prime Video',
+                setupSql: `-- Amazon Prime Video Analytics Database
+CREATE TABLE amazon_prime_video (
+    content_id INTEGER,
+    title VARCHAR(100),
+    content_type VARCHAR(20),
+    genre VARCHAR(50),
+    prime_exclusive BOOLEAN,
+    monthly_views INTEGER,
+    average_watch_time_minutes INTEGER,
+    user_rating DECIMAL(3,2),
+    subscription_impact_score DECIMAL(4,2),
+    advertising_revenue DECIMAL(10,2)
+);
+
+INSERT INTO amazon_prime_video VALUES
+(1, 'The Boys', 'Series', 'Superhero', true, 45000000, 52, 4.7, 9.2, 15000000),
+(2, 'The Marvelous Mrs. Maisel', 'Series', 'Comedy-Drama', true, 28000000, 48, 4.6, 8.8, 8500000),
+(3, 'Jack Ryan', 'Series', 'Action Thriller', true, 38000000, 45, 4.3, 8.5, 12000000);`,
+                solutionSql: `SELECT genre, AVG(monthly_views) as avg_views FROM amazon_prime_video GROUP BY genre ORDER BY avg_views DESC;`,
+                expectedOutput: `[{"genre":"Superhero","avg_views":"45000000"},{"genre":"Action Thriller","avg_views":"38000000"}]`
+            },
+            {
+                problemId: 69,
+                name: 'YouTube Creator Monetization',
+                setupSql: `-- YouTube Creator Monetization Database
+CREATE TABLE youtube_creators (
+    creator_id INTEGER,
+    content_category VARCHAR(50),
+    subscriber_count INTEGER,
+    monthly_views INTEGER,
+    watch_time_hours DECIMAL(12,2),
+    ad_revenue DECIMAL(10,2),
+    membership_revenue DECIMAL(10,2),
+    super_chat_revenue DECIMAL(8,2),
+    sponsored_content_revenue DECIMAL(10,2)
+);
+
+INSERT INTO youtube_creators VALUES
+(1, 'Finance', 245000, 1800000, 28800, 7200, 850, 180, 2500),
+(2, 'Finance', 180000, 1200000, 18500, 6800, 920, 220, 3200),
+(3, 'Technology', 320000, 2200000, 31200, 5500, 1200, 380, 4800);`,
+                solutionSql: `SELECT content_category, AVG(ad_revenue) as avg_ad_revenue FROM youtube_creators GROUP BY content_category ORDER BY avg_ad_revenue DESC;`,
+                expectedOutput: `[{"content_category":"Finance","avg_ad_revenue":"7000.00"},{"content_category":"Technology","avg_ad_revenue":"5500.00"}]`
+            },
+            {
+                problemId: 70,
+                name: 'Zoom Video Analytics',
+                setupSql: `-- Zoom Video Conferencing Analytics Database
+CREATE TABLE zoom_meetings (
+    meeting_id INTEGER,
+    organization_type VARCHAR(50),
+    meeting_type VARCHAR(50),
+    host_plan_type VARCHAR(30),
+    participant_count INTEGER,
+    meeting_duration_minutes INTEGER,
+    video_quality_score DECIMAL(4,2),
+    audio_quality_score DECIMAL(4,2),
+    connection_stability_score DECIMAL(4,2),
+    screen_share_usage_pct DECIMAL(5,2),
+    chat_messages_count INTEGER
+);
+
+INSERT INTO zoom_meetings VALUES
+(1, 'Enterprise', 'Team Meeting', 'Pro', 8, 45, 9.2, 9.5, 8.9, 75.5, 12),
+(2, 'Enterprise', 'Team Meeting', 'Pro', 9, 42, 9.1, 9.3, 9.0, 68.2, 8),
+(3, 'Education', 'Class', 'Education', 25, 60, 8.8, 8.9, 8.7, 85.0, 45);`,
+                solutionSql: `SELECT organization_type, AVG(video_quality_score) as avg_video_quality FROM zoom_meetings GROUP BY organization_type ORDER BY avg_video_quality DESC;`,
+                expectedOutput: `[{"organization_type":"Enterprise","avg_video_quality":"9.15"},{"organization_type":"Education","avg_video_quality":"8.80"}]`
+            }
+        ];
+        
+        let fixResults = [];
+        
+        for (const problem of problemsToFix) {
+            try {
+                // Update complete schema for each problem
+                const updateResult = await pool.query(`
+                    UPDATE problem_schemas 
+                    SET 
+                        setup_sql = $1,
+                        solution_sql = $2,
+                        expected_output = $3,
+                        schema_name = 'default'
+                    WHERE problem_id = (SELECT id FROM problems WHERE numeric_id = $4)
+                `, [problem.setupSql, problem.solutionSql, problem.expectedOutput, problem.problemId]);
+                
+                fixResults.push({
+                    problem: `${problem.problemId} - ${problem.name}`,
+                    status: updateResult.rowCount > 0 ? 'UPDATED' : 'NO_ROWS_FOUND',
+                    rowCount: updateResult.rowCount
+                });
+            } catch (error) {
+                fixResults.push({
+                    problem: `${problem.problemId} - ${problem.name}`,
+                    status: 'ERROR',
+                    error: error.message
+                });
+            }
+        }
+        
         // CRITICAL FIX: Problem 65 (Vanguard) schema - MUST WORK NOW
         let problem65Status = 'FAILED';
         let debugInfo = {};
@@ -221,17 +467,19 @@ ORDER BY avg_tracking_error_bp ASC;`;
         
         res.json({
             success: true,
-            message: `Problem 50 upgraded + Problem 65 CRITICAL FIX: ${problem65Status}`,
+            message: `Problem 50 upgraded + ALL PROBLEMS 61-70 BATCH FIX: ${problem65Status}`,
             solution_preview: properSolution.substring(0, 200) + '...',
             problem65Status: problem65Status,
             problem65Debug: debugInfo,
+            batchFixResults: fixResults,
             improvements: [
                 'Added Sharpe ratio calculations with proper risk-free rate',
                 'Implemented maximum drawdown analysis',
                 'Added volatility and annualized return metrics',
                 'Filtered for high-performance strategies (>2.0 Sharpe, <8% drawdown)',
                 'Proper quantitative finance business logic',
-                `CRITICAL: Problem 65 status: ${problem65Status}`
+                `BATCH FIX: ${fixResults.length} problems processed`,
+                `Problem 65 status: ${problem65Status}`
             ]
         });
         
