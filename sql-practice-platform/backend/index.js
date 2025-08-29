@@ -303,6 +303,13 @@ try {
   console.error('❌ Urgent 1-3 Fix route failed:', e.message);
 }
 
+try {
+  app.use('/api/batch-2', require('./routes/batch-2-problems-11-20'));
+  console.log('✅ Batch 2 Problems 11-20 route loaded');
+} catch (e) {
+  console.error('❌ Batch 2 Problems 11-20 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
