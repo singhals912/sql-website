@@ -296,6 +296,13 @@ try {
   console.error('❌ Simple Systematic Fix route failed:', e.message);
 }
 
+try {
+  app.use('/api/urgent-1-3', require('./routes/urgent-1-3-fix'));
+  console.log('✅ Urgent 1-3 Fix route loaded');
+} catch (e) {
+  console.error('❌ Urgent 1-3 Fix route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
