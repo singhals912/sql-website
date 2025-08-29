@@ -129,15 +129,20 @@ ORDER BY claim_amount DESC;`,
                     WHERE id = $2
                 `, [definition.description, dbProblemId]);
                 
-                // Update or insert the complete schema
-                const schemaResult = await pool.query(`
-                    INSERT INTO problem_schemas (problem_id, setup_sql, solution_sql, expected_output) 
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (problem_id) DO UPDATE SET 
-                        setup_sql = EXCLUDED.setup_sql,
-                        solution_sql = EXCLUDED.solution_sql,
-                        expected_output = EXCLUDED.expected_output
+                // Try UPDATE first, then INSERT if no rows updated
+                const updateResult = await pool.query(`
+                    UPDATE problem_schemas 
+                    SET setup_sql = $2, solution_sql = $3, expected_output = $4, schema_name = 'default'
+                    WHERE problem_id = $1
                 `, [dbProblemId, definition.setupSql, definition.solutionSql, definition.expectedOutput]);
+                
+                if (updateResult.rowCount === 0) {
+                    // No existing record, INSERT new one
+                    await pool.query(`
+                        INSERT INTO problem_schemas (problem_id, setup_sql, solution_sql, expected_output, schema_name, sql_dialect)
+                        VALUES ($1, $2, $3, $4, 'default', 'postgresql')
+                    `, [dbProblemId, definition.setupSql, definition.solutionSql, definition.expectedOutput]);
+                }
                 
                 console.log(`✅ FIXED Problem ${problemId} (${definition.title})`);
                 results.push({
