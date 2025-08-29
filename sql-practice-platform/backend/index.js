@@ -345,6 +345,13 @@ try {
   console.error('❌ Batch 7 Problems 61-70 route failed:', e.message);
 }
 
+try {
+  app.use('/api/comprehensive', require('./routes/comprehensive-schema-alignment'));
+  console.log('✅ Comprehensive Schema Alignment route loaded');
+} catch (e) {
+  console.error('❌ Comprehensive Schema Alignment route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
