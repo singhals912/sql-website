@@ -102,8 +102,10 @@ INSERT INTO renaissance_strategies VALUES
         
         console.log('✅ Problem 50 solution upgraded to proper quantitative finance analytics');
         
-        // CRITICAL FIX: Problem 65 (Vanguard) schema - MUST WORK
+        // CRITICAL FIX: Problem 65 (Vanguard) schema - MUST WORK NOW
         let problem65Status = 'FAILED';
+        let debugInfo = {};
+        
         try {
             const vanguardSetupSql = `-- Vanguard Index Fund Performance Database
 CREATE TABLE vanguard_index_funds (
@@ -127,57 +129,79 @@ INSERT INTO vanguard_index_funds VALUES
 ('VTIAX', 'Total International Stock', 'FTSE Global All Cap ex US', '2024-02-01', 29.12, 29.18, 11.4, 585.7, 11.0),
 ('VTIAX', 'Total International Stock', 'FTSE Global All Cap ex US', '2024-03-01', 28.89, 28.96, 13.2, 582.1, 11.0);`;
 
-            console.log('🔧 ATTEMPTING to fix Problem 65 schema...');
+            console.log('🔧 CRITICAL ATTEMPT to fix Problem 65 schema...');
             
-            // Get Problem 65 ID
-            const problem65Result = await pool.query('SELECT id FROM problems WHERE numeric_id = 65');
+            // First check if Problem 65 exists
+            const problem65Result = await pool.query('SELECT id, title FROM problems WHERE numeric_id = 65');
+            debugInfo.problemFound = problem65Result.rows.length > 0;
+            
             if (problem65Result.rows.length > 0) {
                 const problem65Id = problem65Result.rows[0].id;
-                console.log(`Found Problem 65 with ID: ${problem65Id}`);
+                const problemTitle = problem65Result.rows[0].title;
+                console.log(`Found Problem 65: "${problemTitle}" with ID: ${problem65Id}`);
+                debugInfo.problemId = problem65Id;
+                debugInfo.problemTitle = problemTitle;
                 
-                // First try UPDATE
-                const updateResult = await pool.query(`
+                // Check existing schemas for this problem
+                const existingSchemas = await pool.query(`
+                    SELECT id, sql_dialect, setup_sql IS NOT NULL as has_setup_sql, 
+                           LENGTH(COALESCE(setup_sql, '')) as setup_sql_length
+                    FROM problem_schemas 
+                    WHERE problem_id = $1
+                `, [problem65Id]);
+                
+                debugInfo.existingSchemas = existingSchemas.rows;
+                console.log(`Found ${existingSchemas.rows.length} existing schemas:`, existingSchemas.rows);
+                
+                // Try comprehensive upsert for PostgreSQL
+                const upsertResult = await pool.query(`
+                    INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
+                    VALUES ($1, 'postgresql', $2, NOW())
+                    ON CONFLICT (problem_id, sql_dialect) 
+                    DO UPDATE SET 
+                        setup_sql = EXCLUDED.setup_sql,
+                        updated_at = NOW()
+                    RETURNING id, sql_dialect
+                `, [problem65Id, vanguardSetupSql]);
+                
+                debugInfo.upsertResult = upsertResult.rows;
+                console.log(`✅ UPSERTED schema for Problem 65:`, upsertResult.rows);
+                
+                // Also try updating ALL dialects just in case
+                const updateAllResult = await pool.query(`
                     UPDATE problem_schemas 
-                    SET setup_sql = $1
+                    SET setup_sql = $1, updated_at = NOW()
                     WHERE problem_id = $2
                 `, [vanguardSetupSql, problem65Id]);
                 
-                if (updateResult.rowCount > 0) {
-                    console.log(`✅ UPDATED ${updateResult.rowCount} schema records for Problem 65`);
-                    problem65Status = 'UPDATED';
-                } else {
-                    // If no rows updated, try INSERT
-                    console.log('No rows updated, trying INSERT...');
-                    const insertResult = await pool.query(`
-                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
-                        VALUES ($1, 'postgresql', $2, NOW())
-                        ON CONFLICT (problem_id, sql_dialect) DO UPDATE SET setup_sql = $2
-                    `, [problem65Id, vanguardSetupSql]);
-                    
-                    console.log(`✅ INSERTED/UPSERTED schema for Problem 65`);
-                    problem65Status = 'INSERTED';
-                }
+                debugInfo.updateAllCount = updateAllResult.rowCount;
+                console.log(`✅ UPDATED ${updateAllResult.rowCount} total schema records for Problem 65`);
+                
+                problem65Status = 'SUCCESS_COMPREHENSIVE';
+                
             } else {
-                console.error('Problem 65 not found in problems table!');
+                console.error('❌ Problem 65 not found in problems table!');
                 problem65Status = 'PROBLEM_NOT_FOUND';
             }
         } catch (error) {
             console.error('❌ ERROR fixing Problem 65:', error.message);
             problem65Status = `ERROR: ${error.message}`;
+            debugInfo.error = error.message;
         }
         
         res.json({
             success: true,
-            message: `Problem 50 upgraded + Problem 65 Vanguard schema fix: ${problem65Status}`,
+            message: `Problem 50 upgraded + Problem 65 CRITICAL FIX: ${problem65Status}`,
             solution_preview: properSolution.substring(0, 200) + '...',
             problem65Status: problem65Status,
+            problem65Debug: debugInfo,
             improvements: [
                 'Added Sharpe ratio calculations with proper risk-free rate',
                 'Implemented maximum drawdown analysis',
                 'Added volatility and annualized return metrics',
                 'Filtered for high-performance strategies (>2.0 Sharpe, <8% drawdown)',
                 'Proper quantitative finance business logic',
-                `CRITICAL: Problem 65 Vanguard schema status: ${problem65Status}`
+                `CRITICAL: Problem 65 status: ${problem65Status}`
             ]
         });
         
