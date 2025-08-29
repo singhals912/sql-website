@@ -380,6 +380,59 @@ FROM jnj_drug_pipeline
 WHERE phase_iii_success_rate > 70 AND development_cost_millions < 800
 ORDER BY market_size_to_cost_ratio DESC;`,
                 expectedOutput: `[{"drug_candidate":"Diabetes Injectable GLP-1","therapeutic_area":"Metabolic Diseases","phase_iii_success_rate":"81.20","development_cost_millions":"695.75","estimated_market_size_billions":"22.50","regulatory_approval_timeline_months":"38","competitive_advantage_score":"8.7","market_size_to_cost_ratio":"32.34"},{"drug_candidate":"COVID-19 Variant Vaccine","therapeutic_area":"Infectious Diseases","phase_iii_success_rate":"85.30","development_cost_millions":"420.25","estimated_market_size_billions":"8.20","regulatory_approval_timeline_months":"24","competitive_advantage_score":"8.9","market_size_to_cost_ratio":"19.51"},{"drug_candidate":"Stelara Biosimilar Defense","therapeutic_area":"Immunology","phase_iii_success_rate":"78.50","development_cost_millions":"650.40","estimated_market_size_billions":"12.80","regulatory_approval_timeline_months":"36","competitive_advantage_score":"8.5","market_size_to_cost_ratio":"19.68"},{"drug_candidate":"Rheumatoid Arthritis Biologic","therapeutic_area":"Immunology","phase_iii_success_rate":"74.60","development_cost_millions":"780.90","estimated_market_size_billions":"15.20","regulatory_approval_timeline_months":"42","competitive_advantage_score":"8.1","market_size_to_cost_ratio":"19.46"}]`
+            },
+            // EMERGENCY FIX: Problem 70 Wells Fargo Schema Alignment
+            {
+                problemId: 70,
+                title: 'Wells Fargo Mortgage Risk Assessment',
+                description: `You're a senior risk modeling analyst at Wells Fargo building next-generation mortgage risk assessment tools. Your database contains comprehensive loan application data, borrower demographics, credit histories, and default probability models. The credit committee needs to understand how different borrower characteristics interact to predict default risk and ensure fair lending practices across all demographic segments.
+
+**Your Task:** Find all loan risk deciles with default probabilities exceeding 8% to identify high-risk mortgage segments for enhanced underwriting protocols.`,
+                setupSql: `-- Wells Fargo Mortgage Risk Assessment Database
+CREATE TABLE mortgage_applications (
+    loan_id VARCHAR(15) PRIMARY KEY,
+    borrower_credit_score INTEGER,
+    debt_to_income_ratio DECIMAL(5,2),
+    loan_to_value_ratio DECIMAL(5,2),
+    employment_history_years INTEGER,
+    loan_amount DECIMAL(10,2),
+    default_flag INTEGER
+);
+
+CREATE TABLE risk_assessment (
+    loan_id VARCHAR(15),
+    risk_score DECIMAL(6,3),
+    risk_decile INTEGER,
+    default_probability DECIMAL(5,3),
+    expected_loss DECIMAL(10,2),
+    FOREIGN KEY (loan_id) REFERENCES mortgage_applications(loan_id)
+);
+
+INSERT INTO mortgage_applications VALUES
+('WF_MTG_001', 720, 28.5, 85.0, 8, 450000.00, 0),
+('WF_MTG_002', 680, 35.2, 92.5, 4, 380000.00, 1),
+('WF_MTG_003', 750, 22.1, 78.0, 12, 620000.00, 0),
+('WF_MTG_004', 640, 42.8, 95.0, 2, 320000.00, 1),
+('WF_MTG_005', 780, 18.5, 72.5, 15, 850000.00, 0);
+
+INSERT INTO risk_assessment VALUES
+('WF_MTG_001', 65.250, 3, 0.025, 11250.00),
+('WF_MTG_002', 78.900, 8, 0.095, 36100.00),
+('WF_MTG_003', 45.100, 1, 0.012, 7440.00),
+('WF_MTG_004', 89.750, 10, 0.125, 40000.00),
+('WF_MTG_005', 32.800, 1, 0.008, 6800.00);`,
+                solutionSql: `SELECT 
+    ra.risk_decile,
+    COUNT(ma.loan_id) as borrower_count,
+    ROUND(AVG(ra.risk_score), 2) as avg_risk_score,
+    ROUND(AVG(ra.default_probability * 100), 2) as default_rate_pct,
+    ROUND(AVG(ra.expected_loss), 2) as avg_expected_loss
+FROM mortgage_applications ma
+JOIN risk_assessment ra ON ma.loan_id = ra.loan_id
+WHERE ra.default_probability > 0.08
+GROUP BY ra.risk_decile
+ORDER BY ra.risk_decile;`,
+                expectedOutput: `[{"risk_decile":"8","borrower_count":"1","avg_risk_score":"78.90","default_rate_pct":"9.50","avg_expected_loss":"36100.00"},{"risk_decile":"10","borrower_count":"1","avg_risk_score":"89.75","default_rate_pct":"12.50","avg_expected_loss":"40000.00"}]`
             }
         ];
         
