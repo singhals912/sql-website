@@ -36,11 +36,11 @@ INSERT INTO vanguard_index_funds VALUES
         }
         const problemId = problemResult.rows[0].id;
         
-        // Update the schema
+        // Update the schema using UPSERT to handle both UPDATE and INSERT
         const result = await pool.query(`
-            UPDATE problem_schemas 
-            SET setup_sql = $1
-            WHERE problem_id = $2 AND sql_dialect = 'postgresql'
+            INSERT INTO problem_schemas (problem_id, setup_sql) 
+            VALUES ($2, $1)
+            ON CONFLICT (problem_id) DO UPDATE SET setup_sql = EXCLUDED.setup_sql
         `, [setupSql, problemId]);
         
         console.log(`Updated ${result.rowCount} schema records for Problem 65`);
@@ -55,6 +55,63 @@ INSERT INTO vanguard_index_funds VALUES
         console.error('❌ Error fixing Problem 65:', error);
         res.status(500).json({ 
             error: 'Failed to fix Problem 65', 
+            details: error.message 
+        });
+    }
+});
+
+// Fix Problem 62: Uber Market Analytics
+router.post('/fix-62-uber-upsert', async (req, res) => {
+    try {
+        console.log('🚨 URGENT: Fixing Problem 62 Uber schema with UPSERT...');
+        
+        const setupSql = `-- Uber Market Analytics Database
+CREATE TABLE uber_rides (
+    ride_id INTEGER,
+    market_name VARCHAR(50),
+    service_type VARCHAR(30),
+    ride_distance_km DECIMAL(8,2),
+    ride_duration_minutes INTEGER,
+    ride_revenue DECIMAL(8,2),
+    driver_earnings DECIMAL(8,2),
+    surge_multiplier DECIMAL(4,2),
+    ride_date DATE
+);
+
+-- Sample Uber ride data
+INSERT INTO uber_rides VALUES
+(1, 'San Francisco', 'UberX', 8.5, 25, 18.50, 13.88, 1.2, '2024-06-01'),
+(2, 'San Francisco', 'UberPool', 12.2, 35, 12.80, 9.60, 1.0, '2024-06-01'),
+(3, 'New York', 'UberBlack', 6.8, 20, 24.00, 18.00, 1.5, '2024-06-01'),
+(4, 'New York', 'UberX', 15.3, 42, 22.50, 16.88, 1.3, '2024-06-01'),
+(5, 'Los Angeles', 'UberX', 18.7, 38, 16.20, 12.15, 1.1, '2024-06-01'),
+(6, 'San Francisco', 'UberBlack', 4.2, 15, 19.50, 14.63, 1.0, '2024-06-01');`;
+
+        const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = 62');
+        if (problemResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Problem 62 not found' });
+        }
+        const problemId = problemResult.rows[0].id;
+        
+        // Use UPSERT to handle both UPDATE and INSERT
+        const result = await pool.query(`
+            INSERT INTO problem_schemas (problem_id, setup_sql) 
+            VALUES ($2, $1)
+            ON CONFLICT (problem_id) DO UPDATE SET setup_sql = EXCLUDED.setup_sql
+        `, [setupSql, problemId]);
+        
+        console.log(`Upserted ${result.rowCount} schema records for Problem 62`);
+        
+        res.json({
+            success: true,
+            message: 'Problem 62 (Uber) schema updated successfully with UPSERT',
+            rowsAffected: result.rowCount
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fixing Problem 62:', error);
+        res.status(500).json({ 
+            error: 'Failed to fix Problem 62', 
             details: error.message 
         });
     }
