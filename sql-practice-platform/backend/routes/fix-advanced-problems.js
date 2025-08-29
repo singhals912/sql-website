@@ -153,29 +153,30 @@ INSERT INTO vanguard_index_funds VALUES
                 debugInfo.existingSchemas = existingSchemas.rows;
                 console.log(`Found ${existingSchemas.rows.length} existing schemas:`, existingSchemas.rows);
                 
-                // Try comprehensive upsert for PostgreSQL
-                const upsertResult = await pool.query(`
-                    INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
-                    VALUES ($1, 'postgresql', $2, NOW())
-                    ON CONFLICT (problem_id, sql_dialect) 
-                    DO UPDATE SET 
-                        setup_sql = EXCLUDED.setup_sql,
-                        updated_at = NOW()
-                    RETURNING id, sql_dialect
-                `, [problem65Id, vanguardSetupSql]);
-                
-                debugInfo.upsertResult = upsertResult.rows;
-                console.log(`✅ UPSERTED schema for Problem 65:`, upsertResult.rows);
-                
-                // Also try updating ALL dialects just in case
-                const updateAllResult = await pool.query(`
+                // Try UPDATE first
+                const updateResult = await pool.query(`
                     UPDATE problem_schemas 
-                    SET setup_sql = $1, updated_at = NOW()
+                    SET setup_sql = $1
                     WHERE problem_id = $2
                 `, [vanguardSetupSql, problem65Id]);
                 
-                debugInfo.updateAllCount = updateAllResult.rowCount;
-                console.log(`✅ UPDATED ${updateAllResult.rowCount} total schema records for Problem 65`);
+                debugInfo.updateCount = updateResult.rowCount;
+                console.log(`UPDATE result: ${updateResult.rowCount} rows updated`);
+                
+                if (updateResult.rowCount === 0) {
+                    // If no rows updated, try INSERT
+                    console.log('No rows updated, trying simple INSERT...');
+                    const insertResult = await pool.query(`
+                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql)
+                        VALUES ($1, 'postgresql', $2)
+                        RETURNING id
+                    `, [problem65Id, vanguardSetupSql]);
+                    
+                    debugInfo.insertResult = insertResult.rows;
+                    console.log(`✅ INSERTED new schema for Problem 65:`, insertResult.rows);
+                } else {
+                    console.log(`✅ UPDATED existing schema for Problem 65`);
+                }
                 
                 problem65Status = 'SUCCESS_COMPREHENSIVE';
                 
