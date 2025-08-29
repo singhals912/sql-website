@@ -323,7 +323,7 @@ INSERT INTO zoom_meetings VALUES
         
         for (const problem of problemsToFix) {
             try {
-                // Update complete schema for each problem
+                // First try UPDATE (for problems that have existing schema records)
                 const updateResult = await pool.query(`
                     UPDATE problem_schemas 
                     SET 
@@ -334,12 +334,39 @@ INSERT INTO zoom_meetings VALUES
                     WHERE problem_id = (SELECT id FROM problems WHERE numeric_id = $4)
                 `, [problem.setupSql, problem.solutionSql, problem.expectedOutput, problem.problemId]);
                 
-                fixResults.push({
-                    problem: `${problem.problemId} - ${problem.name}`,
-                    status: updateResult.rowCount > 0 ? 'UPDATED' : 'NO_ROWS_FOUND',
-                    rowCount: updateResult.rowCount
-                });
+                if (updateResult.rowCount > 0) {
+                    console.log(`Problem ${problem.problemId} (${problem.name}): ${updateResult.rowCount} rows updated`);
+                    fixResults.push({
+                        problem: `${problem.problemId} - ${problem.name}`,
+                        status: 'UPDATED',
+                        rowCount: updateResult.rowCount
+                    });
+                } else {
+                    // No existing record found, INSERT new schema record
+                    console.log(`No existing schema for Problem ${problem.problemId}, inserting new record...`);
+                    
+                    const insertResult = await pool.query(`
+                        INSERT INTO problem_schemas (problem_id, setup_sql, solution_sql, expected_output, schema_name, sql_dialect)
+                        VALUES (
+                            (SELECT id FROM problems WHERE numeric_id = $1),
+                            $2,
+                            $3,
+                            $4,
+                            'default',
+                            'postgresql'
+                        )
+                    `, [problem.problemId, problem.setupSql, problem.solutionSql, problem.expectedOutput]);
+                    
+                    console.log(`Problem ${problem.problemId} (${problem.name}): new schema record inserted`);
+                    fixResults.push({
+                        problem: `${problem.problemId} - ${problem.name}`,
+                        status: 'INSERTED',
+                        rowCount: insertResult.rowCount
+                    });
+                }
+                
             } catch (error) {
+                console.error(`❌ Error fixing Problem ${problem.problemId}:`, error.message);
                 fixResults.push({
                     problem: `${problem.problemId} - ${problem.name}`,
                     status: 'ERROR',
