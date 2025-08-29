@@ -153,31 +153,42 @@ INSERT INTO vanguard_index_funds VALUES
                 debugInfo.existingSchemas = existingSchemas.rows;
                 console.log(`Found ${existingSchemas.rows.length} existing schemas:`, existingSchemas.rows);
                 
-                // Insert or update schema
-                if (existingSchemas.rows.length === 0) {
-                    console.log('No existing schemas - inserting new PostgreSQL schema...');
-                    const insertResult = await pool.query(`
-                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
-                        VALUES ($1, 'postgresql', $2, NOW())
-                        RETURNING id, sql_dialect
-                    `, [problem65Id, vanguardSetupSql]);
-                    
-                    debugInfo.insertResult = insertResult.rows;
-                    console.log(`✅ INSERTED new schema for Problem 65:`, insertResult.rows);
-                    problem65Status = 'INSERTED_NEW_SCHEMA';
-                } else {
-                    // Update existing schemas
-                    console.log('Updating existing schemas...');
-                    const updateResult = await pool.query(`
-                        UPDATE problem_schemas 
-                        SET setup_sql = $1
-                        WHERE problem_id = $2
-                    `, [vanguardSetupSql, problem65Id]);
-                    
-                    debugInfo.updateCount = updateResult.rowCount;
-                    console.log(`✅ UPDATED ${updateResult.rowCount} existing schemas for Problem 65`);
-                    problem65Status = 'UPDATED_EXISTING_SCHEMA';
-                }
+                // COMPLETE SCHEMA FIX - Copy Problem 50's approach exactly
+                const expectedOutput = `[{"fund_symbol":"VTI","tracking_error_bp":"8.50","expense_ratio_bp":"3.00"},{"fund_symbol":"VTIAX","tracking_error_bp":"12.80","expense_ratio_bp":"11.00"}]`;
+                
+                const solutionSql = `-- Vanguard Index Fund Tracking Error Analysis
+WITH fund_performance AS (
+    SELECT 
+        fund_symbol,
+        fund_name,
+        AVG(tracking_error_bp) as avg_tracking_error_bp,
+        AVG(expense_ratio_bp) as avg_expense_ratio_bp,
+        COUNT(*) as data_points
+    FROM vanguard_index_funds
+    GROUP BY fund_symbol, fund_name
+)
+SELECT 
+    fund_symbol,
+    ROUND(avg_tracking_error_bp, 2) as tracking_error_bp,
+    ROUND(avg_expense_ratio_bp, 2) as expense_ratio_bp
+FROM fund_performance
+WHERE avg_tracking_error_bp < 15.0 -- Less than 15 basis points (0.15%)
+ORDER BY avg_tracking_error_bp ASC;`;
+
+                // Update with ALL fields like Problem 50
+                const updateResult = await pool.query(`
+                    UPDATE problem_schemas 
+                    SET 
+                        setup_sql = $1,
+                        solution_sql = $2,
+                        expected_output = $3,
+                        schema_name = 'default'
+                    WHERE problem_id = $4
+                `, [vanguardSetupSql, solutionSql, expectedOutput, problem65Id]);
+                
+                debugInfo.updateCount = updateResult.rowCount;
+                console.log(`✅ COMPLETELY UPDATED ${updateResult.rowCount} schema records for Problem 65`);
+                problem65Status = 'COMPLETE_SCHEMA_UPDATE';
                 
                 // CRITICAL: Verify what the API would actually return for Problem 65
                 const apiTestQuery = `
