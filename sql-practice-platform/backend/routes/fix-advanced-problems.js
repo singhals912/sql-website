@@ -153,7 +153,7 @@ INSERT INTO vanguard_index_funds VALUES
                 debugInfo.existingSchemas = existingSchemas.rows;
                 console.log(`Found ${existingSchemas.rows.length} existing schemas:`, existingSchemas.rows);
                 
-                // Since existingSchemas is empty, we need to INSERT a new record
+                // Insert or update schema
                 if (existingSchemas.rows.length === 0) {
                     console.log('No existing schemas - inserting new PostgreSQL schema...');
                     const insertResult = await pool.query(`
@@ -178,6 +178,25 @@ INSERT INTO vanguard_index_funds VALUES
                     console.log(`✅ UPDATED ${updateResult.rowCount} existing schemas for Problem 65`);
                     problem65Status = 'UPDATED_EXISTING_SCHEMA';
                 }
+                
+                // CRITICAL: Verify what the API would actually return for Problem 65
+                const apiTestQuery = `
+                    SELECT * FROM problem_schemas 
+                    WHERE problem_id = $1
+                    ORDER BY 
+                        CASE WHEN sql_dialect = 'postgresql' THEN 1 ELSE 2 END,
+                        id
+                `;
+                const apiTestResult = await pool.query(apiTestQuery, [problem65Id]);
+                debugInfo.apiWouldReturn = apiTestResult.rows;
+                console.log(`🔍 API would return for Problem 65:`, apiTestResult.rows);
+                
+                // Also check if setup_sql has content
+                debugInfo.schemaHasContent = apiTestResult.rows.length > 0 && 
+                    apiTestResult.rows[0].setup_sql && 
+                    apiTestResult.rows[0].setup_sql.length > 0;
+                
+                console.log(`Schema has content: ${debugInfo.schemaHasContent}`);
                 
             } else {
                 console.error('❌ Problem 65 not found in problems table!');
