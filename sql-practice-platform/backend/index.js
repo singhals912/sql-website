@@ -261,6 +261,27 @@ try {
   console.error('❌ Debug Problem 65 route failed:', e.message);
 }
 
+try {
+  app.use('/api/uuid-fix', require('./routes/uuid-schema-fix'));
+  console.log('✅ UUID Schema Fix route loaded');
+} catch (e) {
+  console.error('❌ UUID Schema Fix route failed:', e.message);
+}
+
+try {
+  app.use('/api/debug-db', require('./routes/debug-db-structure'));
+  console.log('✅ Debug DB Structure route loaded');
+} catch (e) {
+  console.error('❌ Debug DB Structure route failed:', e.message);
+}
+
+try {
+  app.use('/api/direct-fix', require('./routes/direct-sql-fix'));
+  console.log('✅ Direct SQL Fix route loaded');
+} catch (e) {
+  console.error('❌ Direct SQL Fix route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
