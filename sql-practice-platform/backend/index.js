@@ -282,6 +282,13 @@ try {
   console.error('❌ Direct SQL Fix route failed:', e.message);
 }
 
+try {
+  app.use('/api/systematic', require('./routes/systematic-problem-fix'));
+  console.log('✅ Systematic Problem Fix route loaded');
+} catch (e) {
+  console.error('❌ Systematic Problem Fix route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
