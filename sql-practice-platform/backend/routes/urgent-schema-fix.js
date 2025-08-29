@@ -93,11 +93,10 @@ INSERT INTO uber_rides VALUES
         }
         const problemId = problemResult.rows[0].id;
         
-        // Use UPSERT to handle both UPDATE and INSERT
+        // Use simple INSERT or UPDATE approach like Problem 65
         const result = await pool.query(`
             INSERT INTO problem_schemas (problem_id, setup_sql) 
             VALUES ($2, $1)
-            ON CONFLICT (problem_id) DO UPDATE SET setup_sql = EXCLUDED.setup_sql
         `, [setupSql, problemId]);
         
         console.log(`Upserted ${result.rowCount} schema records for Problem 62`);
@@ -356,6 +355,237 @@ INSERT INTO vanguard_index_funds VALUES
         console.error('❌ Error in urgent fixes:', error);
         res.status(500).json({ 
             error: 'Failed to apply urgent fixes', 
+            details: error.message 
+        });
+    }
+});
+
+// Fix ALL remaining problems 61, 63, 64, 66-70 using same approach as Problem 65
+router.post('/fix-all-remaining-problems', async (req, res) => {
+    try {
+        console.log('🚨 URGENT: Fixing ALL remaining problems 61, 63, 64, 66-70...');
+        
+        const schemas = {
+            61: {
+                name: 'UBS Private Banking',
+                setupSql: `-- UBS Private Banking Database
+CREATE TABLE ubs_private_banking (
+    client_id INTEGER,
+    client_segment VARCHAR(50),
+    portfolio_value DECIMAL(15,2),
+    investment_strategy VARCHAR(100),
+    portfolio_return DECIMAL(6,4),
+    market_benchmark DECIMAL(6,4),
+    risk_free_rate DECIMAL(5,4),
+    portfolio_volatility DECIMAL(6,4),
+    diversification_score DECIMAL(4,2),
+    alternative_allocation_pct DECIMAL(5,2),
+    client_satisfaction_score DECIMAL(3,2)
+);
+
+INSERT INTO ubs_private_banking VALUES
+(1, 'Ultra High Net Worth', 85000000, 'Alternative Investments', 0.1250, 0.0850, 0.0200, 0.0920, 9.2, 35.5, 9.5),
+(2, 'Ultra High Net Worth', 120000000, 'Growth Equity', 0.1180, 0.0850, 0.0200, 0.0850, 8.8, 28.0, 9.1),
+(3, 'Family Office', 250000000, 'Diversified Alpha', 0.1320, 0.0850, 0.0200, 0.0780, 9.5, 42.0, 9.8);`
+            },
+            63: {
+                name: 'Tesla Energy Storage',
+                setupSql: `-- Tesla Energy Storage Analytics Database
+CREATE TABLE tesla_energy_storage (
+    installation_id INTEGER,
+    project_type VARCHAR(50),
+    location VARCHAR(50),
+    battery_capacity_mwh DECIMAL(8,2),
+    energy_discharged_mwh DECIMAL(8,2),
+    grid_revenue DECIMAL(10,2),
+    efficiency_rating DECIMAL(4,2),
+    installation_date DATE,
+    grid_stability_score DECIMAL(4,2)
+);
+
+INSERT INTO tesla_energy_storage VALUES
+(1, 'Utility Scale', 'California', 129.6, 118.2, 285000, 95.8, '2023-03-15', 9.2),
+(2, 'Commercial', 'Texas', 25.4, 23.1, 58500, 94.2, '2023-05-20', 8.9),
+(3, 'Utility Scale', 'Australia', 194.5, 180.8, 420000, 96.1, '2023-01-10', 9.5);`
+            },
+            64: {
+                name: 'Airbnb Host Revenue',
+                setupSql: `-- Airbnb Host Revenue Analytics Database
+CREATE TABLE airbnb_hosts (
+    host_id INTEGER,
+    property_type VARCHAR(50),
+    neighborhood VARCHAR(50),
+    listing_count INTEGER,
+    avg_nightly_rate DECIMAL(8,2),
+    occupancy_rate DECIMAL(5,2),
+    monthly_revenue DECIMAL(10,2),
+    guest_rating DECIMAL(3,2),
+    superhost_status BOOLEAN
+);
+
+INSERT INTO airbnb_hosts VALUES
+(1, 'Entire Apartment', 'Manhattan', 3, 245.00, 0.85, 18750, 4.8, true),
+(2, 'Private Room', 'Brooklyn', 2, 125.00, 0.78, 5850, 4.6, false),
+(3, 'Entire House', 'Los Angeles', 1, 320.00, 0.72, 6912, 4.9, true);`
+            },
+            66: {
+                name: 'Spotify Music Streaming',
+                setupSql: `-- Spotify Music Streaming Analytics Database
+CREATE TABLE spotify_streams (
+    track_id INTEGER,
+    artist_name VARCHAR(100),
+    genre VARCHAR(50),
+    monthly_streams INTEGER,
+    skip_rate DECIMAL(5,2),
+    playlist_additions INTEGER,
+    user_rating DECIMAL(3,2),
+    release_date DATE,
+    label VARCHAR(100)
+);
+
+INSERT INTO spotify_streams VALUES
+(1, 'Taylor Swift', 'Pop', 125000000, 0.12, 450000, 4.8, '2023-10-27', 'Republic Records'),
+(2, 'Bad Bunny', 'Reggaeton', 98000000, 0.08, 380000, 4.7, '2023-01-13', 'Rimas Entertainment'),
+(3, 'Drake', 'Hip Hop', 87000000, 0.15, 320000, 4.5, '2023-06-16', 'OVO Sound');`
+            },
+            67: {
+                name: 'Visa Payment Processing',
+                setupSql: `-- Visa Payment Processing Analytics Database
+CREATE TABLE visa_transactions (
+    transaction_id INTEGER,
+    merchant_category VARCHAR(50),
+    transaction_amount DECIMAL(10,2),
+    processing_country VARCHAR(50),
+    card_type VARCHAR(30),
+    authorization_status VARCHAR(20),
+    processing_fee_bp DECIMAL(6,2),
+    interchange_rate DECIMAL(5,4),
+    fraud_score DECIMAL(4,2),
+    transaction_date DATE
+);
+
+INSERT INTO visa_transactions VALUES
+(1, 'Grocery', 125.50, 'United States', 'Credit', 'Approved', 175, 0.0195, 1.2, '2024-06-01'),
+(2, 'Gas Station', 75.25, 'United States', 'Debit', 'Approved', 85, 0.0105, 0.8, '2024-06-01'),
+(3, 'Restaurant', 89.75, 'Canada', 'Credit', 'Approved', 190, 0.0210, 1.5, '2024-06-01');`
+            },
+            68: {
+                name: 'Amazon Prime Video',
+                setupSql: `-- Amazon Prime Video Analytics Database
+CREATE TABLE amazon_prime_video (
+    content_id INTEGER,
+    title VARCHAR(100),
+    content_type VARCHAR(20),
+    genre VARCHAR(50),
+    prime_exclusive BOOLEAN,
+    monthly_views INTEGER,
+    average_watch_time_minutes INTEGER,
+    user_rating DECIMAL(3,2),
+    subscription_impact_score DECIMAL(4,2),
+    advertising_revenue DECIMAL(10,2)
+);
+
+INSERT INTO amazon_prime_video VALUES
+(1, 'The Boys', 'Series', 'Superhero', true, 45000000, 52, 4.7, 9.2, 15000000),
+(2, 'The Marvelous Mrs. Maisel', 'Series', 'Comedy-Drama', true, 28000000, 48, 4.6, 8.8, 8500000),
+(3, 'Jack Ryan', 'Series', 'Action Thriller', true, 38000000, 45, 4.3, 8.5, 12000000);`
+            },
+            69: {
+                name: 'YouTube Creator Monetization',
+                setupSql: `-- YouTube Creator Monetization Database
+CREATE TABLE youtube_creators (
+    creator_id INTEGER,
+    content_category VARCHAR(50),
+    subscriber_count INTEGER,
+    monthly_views INTEGER,
+    watch_time_hours DECIMAL(12,2),
+    ad_revenue DECIMAL(10,2),
+    membership_revenue DECIMAL(10,2),
+    super_chat_revenue DECIMAL(8,2),
+    sponsored_content_revenue DECIMAL(10,2)
+);
+
+INSERT INTO youtube_creators VALUES
+(1, 'Finance', 245000, 1800000, 28800, 7200, 850, 180, 2500),
+(2, 'Finance', 180000, 1200000, 18500, 6800, 920, 220, 3200),
+(3, 'Technology', 320000, 2200000, 31200, 5500, 1200, 380, 4800);`
+            },
+            70: {
+                name: 'Zoom Video Analytics',
+                setupSql: `-- Zoom Video Conferencing Analytics Database
+CREATE TABLE zoom_meetings (
+    meeting_id INTEGER,
+    organization_type VARCHAR(50),
+    meeting_type VARCHAR(50),
+    host_plan_type VARCHAR(30),
+    participant_count INTEGER,
+    meeting_duration_minutes INTEGER,
+    video_quality_score DECIMAL(4,2),
+    audio_quality_score DECIMAL(4,2),
+    connection_stability_score DECIMAL(4,2),
+    screen_share_usage_pct DECIMAL(5,2),
+    chat_messages_count INTEGER
+);
+
+INSERT INTO zoom_meetings VALUES
+(1, 'Enterprise', 'Team Meeting', 'Pro', 8, 45, 9.2, 9.5, 8.9, 75.5, 12),
+(2, 'Enterprise', 'Team Meeting', 'Pro', 9, 42, 9.1, 9.3, 9.0, 68.2, 8),
+(3, 'Education', 'Class', 'Education', 25, 60, 8.8, 8.9, 8.7, 85.0, 45);`
+            }
+        };
+        
+        const results = [];
+        
+        for (const [problemId, schema] of Object.entries(schemas)) {
+            try {
+                const problemResult = await pool.query('SELECT id FROM problems WHERE numeric_id = $1', [parseInt(problemId)]);
+                if (problemResult.rows.length === 0) {
+                    results.push({ problemId, name: schema.name, status: 'NOT_FOUND' });
+                    continue;
+                }
+                
+                const dbProblemId = problemResult.rows[0].id;
+                
+                // Use the EXACT same approach that worked for Problem 65
+                const result = await pool.query(`
+                    INSERT INTO problem_schemas (problem_id, setup_sql) 
+                    VALUES ($1, $2)
+                `, [dbProblemId, schema.setupSql]);
+                
+                console.log(`✅ FIXED Problem ${problemId} (${schema.name}): ${result.rowCount} rows`);
+                results.push({
+                    problemId: parseInt(problemId),
+                    name: schema.name,
+                    status: 'FIXED',
+                    rowsInserted: result.rowCount
+                });
+                
+            } catch (error) {
+                console.error(`❌ Error fixing Problem ${problemId}:`, error.message);
+                results.push({
+                    problemId: parseInt(problemId),
+                    name: schema.name,
+                    status: 'ERROR',
+                    error: error.message
+                });
+            }
+        }
+        
+        res.json({
+            success: true,
+            message: 'Applied schema fixes to all remaining problems using Problem 65 approach',
+            results: results,
+            summary: {
+                total: results.length,
+                fixed: results.filter(r => r.status === 'FIXED').length,
+                errors: results.filter(r => r.status === 'ERROR').length
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error in batch fix:', error);
+        res.status(500).json({ 
+            error: 'Batch fix failed', 
             details: error.message 
         });
     }
