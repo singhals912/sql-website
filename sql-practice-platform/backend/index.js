@@ -254,6 +254,13 @@ try {
   console.error('❌ Urgent schema fix route failed:', e.message);
 }
 
+try {
+  app.use('/api/debug', require('./routes/debug-problem-65'));
+  console.log('✅ Debug Problem 65 route loaded');
+} catch (e) {
+  console.error('❌ Debug Problem 65 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
