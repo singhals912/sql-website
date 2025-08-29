@@ -352,6 +352,13 @@ try {
   console.error('❌ Comprehensive Schema Alignment route failed:', e.message);
 }
 
+try {
+  app.use('/api/emergency-fix', require('./routes/emergency-schema-fix-70'));
+  console.log('✅ Emergency Schema Fix 70 route loaded');
+} catch (e) {
+  console.error('❌ Emergency Schema Fix 70 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
