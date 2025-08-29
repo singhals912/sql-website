@@ -338,6 +338,13 @@ try {
   console.error('❌ Batch 6 Problems 51-60 route failed:', e.message);
 }
 
+try {
+  app.use('/api/batch-7', require('./routes/batch-7-problems-61-70'));
+  console.log('✅ Batch 7 Problems 61-70 route loaded');
+} catch (e) {
+  console.error('❌ Batch 7 Problems 61-70 route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');
