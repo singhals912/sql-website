@@ -153,32 +153,31 @@ INSERT INTO vanguard_index_funds VALUES
                 debugInfo.existingSchemas = existingSchemas.rows;
                 console.log(`Found ${existingSchemas.rows.length} existing schemas:`, existingSchemas.rows);
                 
-                // Try UPDATE first
-                const updateResult = await pool.query(`
-                    UPDATE problem_schemas 
-                    SET setup_sql = $1
-                    WHERE problem_id = $2
-                `, [vanguardSetupSql, problem65Id]);
-                
-                debugInfo.updateCount = updateResult.rowCount;
-                console.log(`UPDATE result: ${updateResult.rowCount} rows updated`);
-                
-                if (updateResult.rowCount === 0) {
-                    // If no rows updated, try INSERT
-                    console.log('No rows updated, trying simple INSERT...');
+                // Since existingSchemas is empty, we need to INSERT a new record
+                if (existingSchemas.rows.length === 0) {
+                    console.log('No existing schemas - inserting new PostgreSQL schema...');
                     const insertResult = await pool.query(`
-                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql)
-                        VALUES ($1, 'postgresql', $2)
-                        RETURNING id
+                        INSERT INTO problem_schemas (problem_id, sql_dialect, setup_sql, created_at)
+                        VALUES ($1, 'postgresql', $2, NOW())
+                        RETURNING id, sql_dialect
                     `, [problem65Id, vanguardSetupSql]);
                     
                     debugInfo.insertResult = insertResult.rows;
                     console.log(`✅ INSERTED new schema for Problem 65:`, insertResult.rows);
+                    problem65Status = 'INSERTED_NEW_SCHEMA';
                 } else {
-                    console.log(`✅ UPDATED existing schema for Problem 65`);
+                    // Update existing schemas
+                    console.log('Updating existing schemas...');
+                    const updateResult = await pool.query(`
+                        UPDATE problem_schemas 
+                        SET setup_sql = $1
+                        WHERE problem_id = $2
+                    `, [vanguardSetupSql, problem65Id]);
+                    
+                    debugInfo.updateCount = updateResult.rowCount;
+                    console.log(`✅ UPDATED ${updateResult.rowCount} existing schemas for Problem 65`);
+                    problem65Status = 'UPDATED_EXISTING_SCHEMA';
                 }
-                
-                problem65Status = 'SUCCESS_COMPREHENSIVE';
                 
             } else {
                 console.error('❌ Problem 65 not found in problems table!');
