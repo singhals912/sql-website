@@ -359,6 +359,13 @@ try {
   console.error('❌ Emergency Schema Fix 70 route failed:', e.message);
 }
 
+try {
+  app.use('/api/force-fix', require('./routes/force-fix-all-problems'));
+  console.log('✅ Force Fix All Problems route loaded');
+} catch (e) {
+  console.error('❌ Force Fix All Problems route failed:', e.message);
+}
+
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
     const path = require('path');

@@ -520,6 +520,93 @@ ORDER BY ra.risk_decile;\`;
                 error: emergencyError.message
             });
         }
+
+        // NUCLEAR OPTION: Fix Problem 1 title mismatch as proof of concept
+        try {
+            console.log('🚨 NUCLEAR: Fixing Problem 1 title-description mismatch...');
+            
+            const problem1Result = await pool.query('SELECT id FROM problems WHERE numeric_id = 1');
+            if (problem1Result.rows.length > 0) {
+                const dbProblemId = problem1Result.rows[0].id;
+                
+                // Update title to match the actual content
+                await pool.query(\`
+                    UPDATE problems 
+                    SET 
+                        title = 'Apple Product Sales Analytics',
+                        updated_at = NOW()
+                    WHERE id = $1
+                \`, [dbProblemId]);
+                
+                console.log('🎯 Problem 1 title fixed: Apple Product Sales Analytics');
+                results.push({
+                    problemId: 1,
+                    title: 'Apple Product Sales Analytics',
+                    status: 'TITLE_FIXED',
+                    title_updated: true,
+                    description_updated: false,
+                    schema_updated: false
+                });
+            }
+            
+            // NUCLEAR OPTION: Fix Problem 11 title mismatch 
+            const problem11Result = await pool.query('SELECT id FROM problems WHERE numeric_id = 11');
+            if (problem11Result.rows.length > 0) {
+                const dbProblemId = problem11Result.rows[0].id;
+                
+                // Update title to match description (ExxonMobil)
+                await pool.query(\`
+                    UPDATE problems 
+                    SET 
+                        title = 'ExxonMobil Energy Trading Analytics',
+                        updated_at = NOW()
+                    WHERE id = $1
+                \`, [dbProblemId]);
+                
+                console.log('🎯 Problem 11 title fixed: ExxonMobil Energy Trading Analytics');
+                results.push({
+                    problemId: 11,
+                    title: 'ExxonMobil Energy Trading Analytics',
+                    status: 'TITLE_FIXED',
+                    title_updated: true,
+                    description_updated: false,
+                    schema_updated: false
+                });
+            }
+            
+            // NUCLEAR OPTION: Fix Problem 50 title mismatch
+            const problem50Result = await pool.query('SELECT id FROM problems WHERE numeric_id = 50');
+            if (problem50Result.rows.length > 0) {
+                const dbProblemId = problem50Result.rows[0].id;
+                
+                // Update title to match description (Tesla)
+                await pool.query(\`
+                    UPDATE problems 
+                    SET 
+                        title = 'Tesla Energy Storage Analytics',
+                        updated_at = NOW()
+                    WHERE id = $1
+                \`, [dbProblemId]);
+                
+                console.log('🎯 Problem 50 title fixed: Tesla Energy Storage Analytics');
+                results.push({
+                    problemId: 50,
+                    title: 'Tesla Energy Storage Analytics',
+                    status: 'TITLE_FIXED',
+                    title_updated: true,
+                    description_updated: false,
+                    schema_updated: false
+                });
+            }
+            
+        } catch (nuclearError) {
+            console.error('🚨 Nuclear title fixes failed:', nuclearError);
+            results.push({
+                problemId: 'MULTIPLE',
+                status: 'NUCLEAR_FIX_ERROR',
+                error: nuclearError.message
+            });
+        }
         
         for (const problem of problemsToFix) {
             try {
